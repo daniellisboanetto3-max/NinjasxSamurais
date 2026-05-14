@@ -2,83 +2,119 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>NINJA-X</title>
+    <title>NINJA-X ALPHA</title>
     <style>
-        body { margin: 0; background: #000; color: #fff; font-family: sans-serif; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
-        canvas { border: 2px solid #00aaff; background: #111; }
-        #ui { position: absolute; top: 10px; font-size: 20px; font-weight: bold; color: #00aaff; text-shadow: 2px 2px #000; }
+        body { margin: 0; background: #000; overflow: hidden; font-family: 'Arial', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        canvas { background: #050505; border: 3px solid #333; box-shadow: 0 0 20px #00aaff; }
+        #hud { position: absolute; top: 20px; color: white; font-size: 24px; text-shadow: 2px 2px #000; pointer-events: none; }
     </style>
 </head>
 <body>
-    <div id="ui">KILLS: <span id="score">0</span> / 30</div>
+    <div id="hud">DERROTADOS: <span id="score">0</span> / 30</div>
     <canvas id="gameCanvas"></canvas>
 
 <script>
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-const scoreEl = document.getElementById('score');
-canvas.width = 800; canvas.height = 600;
+const scoreDisplay = document.getElementById('score');
 
+// Configurações da Tela
+canvas.width = 800;
+canvas.height = 600;
+
+// Variáveis de Jogo
 let score = 0;
 let glowUp = false;
-let bossActive = false;
+let bossMode = false;
+let gameActive = true;
 
-const player = { x: 400, y: 300, size: 30, color: '#00aaff', speed: 5, isAttacking: false };
-const boss = { x: 900, y: 250, size: 80, hp: 100, active: false };
+// Definição do Jogador
+const ninja = {
+    x: 400, y: 300, size: 30, color: '#00aaff', speed: 5,
+    attacking: false, range: 70
+};
+
+// Definição do Chefão
+const boss = { x: 900, y: 300, size: 100, hp: 100, color: '#a020f0' };
+
 let enemies = [];
 let keys = {};
 
+// Controles
 window.addEventListener('keydown', e => keys[e.code] = true);
 window.addEventListener('keyup', e => keys[e.code] = false);
 
-function spawnEnemy() {
-    if (bossActive) return;
-    enemies.push({ x: Math.random() > 0.5 ? -30 : 830, y: Math.random() * 600, size: 25, speed: 2 });
-    setTimeout(spawnEnemy, glowUp ? 400 : 800);
+// Função para criar samurais
+function spawnSamurai() {
+    if (bossMode || !gameActive) return;
+    const x = Math.random() > 0.5 ? -40 : 840;
+    const y = Math.random() * canvas.height;
+    enemies.push({ x, y, size: 25, speed: 1.5 + (score * 0.05) });
+    setTimeout(spawnSamurai, glowUp ? 400 : 900);
 }
 
+// Lógica Principal
 function update() {
-    if (keys['ArrowUp'] || keys['KeyW']) player.y -= player.speed;
-    if (keys['ArrowDown'] || keys['KeyS']) player.y += player.speed;
-    if (keys['ArrowLeft'] || keys['KeyA']) player.x -= player.speed;
-    if (keys['ArrowRight'] || keys['KeyD']) player.x += player.speed;
+    if (!gameActive) return;
 
+    // Movimentação do Ninja
+    if (keys['ArrowUp'] || keys['KeyW']) ninja.y -= ninja.speed;
+    if (keys['ArrowDown'] || keys['KeyS']) ninja.y += ninja.speed;
+    if (keys['ArrowLeft'] || keys['KeyA']) ninja.x -= ninja.speed;
+    if (keys['ArrowRight'] || keys['KeyD']) ninja.x += ninja.speed;
+
+    // Ataque
     if (keys['Space']) {
-        player.isAttacking = true;
-        setTimeout(() => player.isAttacking = false, 150);
+        ninja.attacking = true;
+        setTimeout(() => ninja.attacking = false, 150);
     }
 
+    // Checar Glow Up (Nível 30)
     if (score >= 30 && !glowUp) {
         glowUp = true;
-        player.color = '#ffd700';
-        player.size = 50;
-        player.speed = 8;
-        bossActive = true;
+        ninja.color = '#ffd700'; // Dourado
+        ninja.size = 50;
+        ninja.speed = 8;
+        ninja.range = 130;
+        bossMode = true;
     }
 
-    enemies.forEach((en, i) => {
-        let dx = player.x - en.x;
-        let dy = player.y - en.y;
-        let dist = Math.sqrt(dx*dx + dy*dy);
-        en.x += (dx/dist) * en.speed;
-        en.y += (dy/dist) * en.speed;
+    // Lógica dos Samurais
+    enemies.forEach((enemy, index) => {
+        // Seguir o Ninja
+        const dx = ninja.x - enemy.x;
+        const dy = ninja.y - enemy.y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        enemy.x += (dx/dist) * enemy.speed;
+        enemy.y += (dy/dist) * enemy.speed;
 
-        if (player.isAttacking && dist < 70) {
-            enemies.splice(i, 1);
+        // Dano: Se o ninja atacar perto do samurai
+        if (ninja.attacking && dist < ninja.range) {
+            enemies.splice(index, 1);
             score++;
-            scoreEl.innerText = score;
+            scoreDisplay.innerText = score;
+        }
+
+        // Se o samurai tocar o ninja e ele não estiver atacando (Game Over simples)
+        if (!ninja.attacking && dist < 25) {
+            // Aqui você poderia colocar perda de vida, mas vamos manter simples para rodar
         }
     });
 
-    if (bossActive) {
-        let dx = player.x - boss.x;
-        let dy = player.y - boss.y;
-        let dist = Math.sqrt(dx*dx + dy*dy);
-        boss.x += (dx/dist) * 1.5;
-        boss.y += (dy/dist) * 1.5;
-        if (player.isAttacking && dist < 100) {
-            boss.hp -= 1;
-            if (boss.hp <= 0) { alert("VENCEU O CHEFÃO!"); location.reload(); }
+    // Lógica do Chefão
+    if (bossMode) {
+        const dx = ninja.x - boss.x;
+        const dy = ninja.y - boss.y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        boss.x += (dx/dist) * 1.2;
+        boss.y += (dy/dist) * 1.2;
+
+        if (ninja.attacking && dist < ninja.range + 40) {
+            boss.hp -= 0.5;
+            if (boss.hp <= 0) {
+                alert("VITÓRIA! VOCÊ DERROTOU O SAMURAI SUPREMO!");
+                location.reload();
+            }
         }
     }
 
@@ -86,29 +122,50 @@ function update() {
     requestAnimationFrame(update);
 }
 
+// Desenhar na Tela
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = player.color;
-    ctx.fillRect(player.x - player.size/2, player.y - player.size/2, player.size, player.size);
 
-    if (player.isAttacking) {
-        ctx.strokeStyle = player.color;
+    // Desenhar Samurais
+    ctx.fillStyle = 'red';
+    enemies.forEach(en => {
+        ctx.fillRect(en.x - en.size/2, en.y - en.size/2, en.size, en.size);
+    });
+
+    // Desenhar Chefão
+    if (bossMode) {
+        ctx.fillStyle = boss.color;
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = boss.color;
+        ctx.fillRect(boss.x - boss.size/2, boss.y - boss.size/2, boss.size, boss.size);
+        // Barra de vida do Boss
+        ctx.fillStyle = 'white';
+        ctx.fillRect(boss.x - 50, boss.y - 70, 100, 10);
+        ctx.fillStyle = 'red';
+        ctx.fillRect(boss.x - 50, boss.y - 70, boss.hp, 10);
+    }
+
+    // Desenhar Efeito de Ataque
+    if (ninja.attacking) {
         ctx.beginPath();
-        ctx.arc(player.x, player.y, glowUp ? 100 : 60, 0, Math.PI*2);
+        ctx.strokeStyle = ninja.color;
+        ctx.lineWidth = 5;
+        ctx.arc(ninja.x, ninja.y, ninja.range, 0, Math.PI * 2);
         ctx.stroke();
     }
 
-    ctx.fillStyle = 'red';
-    enemies.forEach(en => ctx.fillRect(en.x - 12, en.y - 12, 25, 25));
-
-    if (bossActive) {
-        ctx.fillStyle = 'purple';
-        ctx.fillRect(boss.x - 40, boss.y - 40, 80, 80);
-    }
+    // Desenhar Ninja
+    ctx.fillStyle = ninja.color;
+    ctx.shadowBlur = glowUp ? 25 : 10;
+    ctx.shadowColor = ninja.color;
+    ctx.fillRect(ninja.x - ninja.size/2, ninja.y - ninja.size/2, ninja.size, ninja.size);
+    ctx.shadowBlur = 0; // Reset sombra para não pesar
 }
 
-spawnEnemy();
+// Iniciar Processos
+spawnSamurai();
 update();
+
 </script>
 </body>
 </html>
