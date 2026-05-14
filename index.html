@@ -2,33 +2,15 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Ninja-X: The Golden Awakening</title>
+    <title>NINJA-X</title>
     <style>
-        body { margin: 0; background: #0a0a0a; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
-        canvas { border: 4px solid #333; box-shadow: 0 0 20px rgba(0,0,0,0.5); background: #1a1a1a; cursor: none; }
-        #ui { position: absolute; top: 20px; width: 100%; text-align: center; pointer-events: none; font-size: 24px; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; }
-        #capa { position: absolute; background: rgba(0,0,0,0.9); width: 800px; height: 600px; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10; border: 2px solid #ffd700; }
-        h1 { font-size: 70px; margin: 0; color: #00aaff; text-shadow: 3px 3px #000, 0 0 20px #00aaff; }
-        .glow-text { color: #ffd700; text-shadow: 0 0 10px #ffd700; }
-        button { padding: 15px 40px; font-size: 20px; background: #00aaff; border: none; color: white; cursor: pointer; border-radius: 5px; transition: 0.3s; margin-top: 20px; }
-        button:hover { background: #ffd700; color: black; transform: scale(1.1); }
-        #boss-ui { position: absolute; bottom: 50px; width: 500px; height: 20px; border: 2px solid white; display: none; }
-        #boss-bar { height: 100%; background: #a020f0; width: 100%; transition: 0.3s; }
+        body { margin: 0; background: #000; color: #fff; font-family: sans-serif; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        canvas { border: 2px solid #00aaff; background: #111; }
+        #ui { position: absolute; top: 10px; font-size: 20px; font-weight: bold; color: #00aaff; text-shadow: 2px 2px #000; }
     </style>
 </head>
 <body>
-
-    <div id="ui">Kills: <span id="score">0</span> / 30</div>
-    
-    <div id="boss-ui"><div id="boss-bar"></div></div>
-
-    <div id="capa">
-        <h1>NINJA-X</h1>
-        <p>Elimine 30 Samurais para despertar seu poder real.</p>
-        <p style="font-size: 14px;">WASD para Mover | ESPAÇO para Atacar</p>
-        <button onclick="startGame()">INICIAR BATALHA</button>
-    </div>
-
+    <div id="ui">KILLS: <span id="score">0</span> / 30</div>
     <canvas id="gameCanvas"></canvas>
 
 <script>
@@ -37,100 +19,66 @@ const ctx = canvas.getContext('2d');
 const scoreEl = document.getElementById('score');
 canvas.width = 800; canvas.height = 600;
 
-let gameActive = false;
 let score = 0;
 let glowUp = false;
 let bossActive = false;
 
-// Configurações do Ninja
-const player = {
-    x: 400, y: 300, size: 30, color: '#00aaff', speed: 5, 
-    isAttacking: false, attackRange: 60, particles: []
-};
-
-// Boss
-const boss = { x: 900, y: 250, size: 100, hp: 100, maxHp: 100, active: false };
-
+const player = { x: 400, y: 300, size: 30, color: '#00aaff', speed: 5, isAttacking: false };
+const boss = { x: 900, y: 250, size: 80, hp: 100, active: false };
 let enemies = [];
 let keys = {};
 
 window.addEventListener('keydown', e => keys[e.code] = true);
 window.addEventListener('keyup', e => keys[e.code] = false);
 
-function startGame() {
-    document.getElementById('capa').style.display = 'none';
-    gameActive = true;
-    spawnEnemy();
-}
-
 function spawnEnemy() {
-    if (!gameActive || bossActive) return;
-    const side = Math.floor(Math.random() * 4);
-    let x, y;
-    if (side === 0) { x = -30; y = Math.random() * 600; }
-    else if (side === 1) { x = 830; y = Math.random() * 600; }
-    else if (side === 2) { x = Math.random() * 800; y = -30; }
-    else { x = Math.random() * 800; y = 630; }
-    
-    enemies.push({ x, y, size: 25, speed: glowUp ? 1.5 : 2 });
+    if (bossActive) return;
+    enemies.push({ x: Math.random() > 0.5 ? -30 : 830, y: Math.random() * 600, size: 25, speed: 2 });
     setTimeout(spawnEnemy, glowUp ? 400 : 800);
 }
 
 function update() {
-    if (!gameActive) return;
+    if (keys['ArrowUp'] || keys['KeyW']) player.y -= player.speed;
+    if (keys['ArrowDown'] || keys['KeyS']) player.y += player.speed;
+    if (keys['ArrowLeft'] || keys['KeyA']) player.x -= player.speed;
+    if (keys['ArrowRight'] || keys['KeyD']) player.x += player.speed;
 
-    // Movimentação
-    if (keys['KeyW'] || keys['ArrowUp']) player.y -= player.speed;
-    if (keys['KeyS'] || keys['ArrowDown']) player.y += player.speed;
-    if (keys['KeyA'] || keys['ArrowLeft']) player.x -= player.speed;
-    if (keys['KeyD'] || keys['ArrowRight']) player.x += player.speed;
-
-    // Ataque
     if (keys['Space']) {
         player.isAttacking = true;
         setTimeout(() => player.isAttacking = false, 150);
     }
 
-    // Glow Up Check
     if (score >= 30 && !glowUp) {
         glowUp = true;
         player.color = '#ffd700';
         player.size = 50;
-        player.speed = 10;
-        player.attackRange = 120;
-        spawnBoss();
+        player.speed = 8;
+        bossActive = true;
     }
 
-    // Lógica Inimigos
-    enemies.forEach((en, index) => {
-        const dx = player.x - en.x;
-        const dy = player.y - en.y;
-        const dist = Math.sqrt(dx*dx + dy*dy);
+    enemies.forEach((en, i) => {
+        let dx = player.x - en.x;
+        let dy = player.y - en.y;
+        let dist = Math.sqrt(dx*dx + dy*dy);
         en.x += (dx/dist) * en.speed;
         en.y += (dy/dist) * en.speed;
 
-        if (player.isAttacking && dist < player.attackRange) {
-            enemies.splice(index, 1);
+        if (player.isAttacking && dist < 70) {
+            enemies.splice(i, 1);
             score++;
             scoreEl.innerText = score;
         }
     });
 
-    // Lógica Boss
     if (bossActive) {
-        const dx = player.x - boss.x;
-        const dy = player.y - boss.y;
-        const dist = Math.sqrt(dx*dx + dy*dy);
+        let dx = player.x - boss.x;
+        let dy = player.y - boss.y;
+        let dist = Math.sqrt(dx*dx + dy*dy);
         boss.x += (dx/dist) * 1.5;
         boss.y += (dy/dist) * 1.5;
-
-        if (player.isAttacking && dist < player.attackRange + 50) {
-            boss.hp -= 0.5;
-            document.getElementById('boss-bar').style.width = boss.hp + '%';
-            if (boss.hp <= 0) {
-                alert("VITÓRIA LENDÁRIA! O NINJA-X SALVOU O REINO!");
-                location.reload();
-            }
+        if (player.isAttacking && dist < 100) {
+            boss.hp -= 1;
+            if (boss.hp <= 0) { alert("VENCEU O CHEFÃO!"); location.reload(); }
         }
     }
 
@@ -138,49 +86,28 @@ function update() {
     requestAnimationFrame(update);
 }
 
-function spawnBoss() {
-    bossActive = true;
-    document.getElementById('boss-ui').style.display = 'block';
-}
-
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Efeito de rastro (Glow Up Especial)
-    if (glowUp) {
-        ctx.shadowBlur = 20;
-        ctx.shadowColor = '#ffd700';
-    }
-
-    // Desenhar Player
     ctx.fillStyle = player.color;
     ctx.fillRect(player.x - player.size/2, player.y - player.size/2, player.size, player.size);
-    
-    // Efeito de Ataque
+
     if (player.isAttacking) {
-        ctx.strokeStyle = glowUp ? '#fff' : '#00aaff';
-        ctx.lineWidth = 3;
+        ctx.strokeStyle = player.color;
         ctx.beginPath();
-        ctx.arc(player.x, player.y, player.attackRange, 0, Math.PI * 2);
+        ctx.arc(player.x, player.y, glowUp ? 100 : 60, 0, Math.PI*2);
         ctx.stroke();
     }
 
-    // Desenhar Inimigos
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = '#ff3333';
-    enemies.forEach(en => {
-        ctx.fillRect(en.x - en.size/2, en.y - en.size/2, en.size, en.size);
-    });
+    ctx.fillStyle = 'red';
+    enemies.forEach(en => ctx.fillRect(en.x - 12, en.y - 12, 25, 25));
 
-    // Desenhar Boss
     if (bossActive) {
-        ctx.fillStyle = '#a020f0';
-        ctx.shadowBlur = 15;
-        ctx.shadowColor = '#a020f0';
-        ctx.fillRect(boss.x - boss.size/2, boss.y - boss.size/2, boss.size, boss.size);
+        ctx.fillStyle = 'purple';
+        ctx.fillRect(boss.x - 40, boss.y - 40, 80, 80);
     }
 }
 
+spawnEnemy();
 update();
 </script>
 </body>
