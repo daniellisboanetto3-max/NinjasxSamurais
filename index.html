@@ -1,341 +1,187 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
-<meta charset="UTF-8">
-<title>Ninja vs Samurais</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:#000;display:flex;justify-content:center;align-items:center;height:100vh;overflow:hidden;font-family:'Segoe UI',sans-serif}
-canvas{border:2px solid #333;display:block}
-#ui{position:absolute;top:12px;left:50%;transform:translateX(-50%);color:#fff;font-size:20px;text-align:center;pointer-events:none;z-index:10;text-shadow:0 0 10px rgba(0,150,255,.8)}
-#bossBar{position:absolute;top:70px;left:50%;transform:translateX(-50%);width:300px;height:18px;background:#333;border:2px solid #888;border-radius:10px;overflow:hidden;display:none;z-index:10}
-#bossHP{width:100%;height:100%;background:linear-gradient(90deg,#a020f0,#ff00ff);transition:width .3s}
-#msg{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:gold;font-size:44px;font-weight:bold;text-shadow:0 0 30px gold;pointer-events:none;z-index:20;display:none}
-#startScreen{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.92);display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:30}
-#startScreen h1{color:#00aaff;font-size:48px;text-shadow:0 0 20px #00aaff;margin-bottom:10px}
-#startScreen p{color:#aaa;font-size:15px;margin:4px 0}
-#startScreen button{margin-top:25px;padding:14px 38px;font-size:20px;background:linear-gradient(135deg,#0066ff,#00ccff);color:#fff;border:none;border-radius:8px;cursor:pointer}
-#startScreen button:hover{transform:scale(1.05);box-shadow:0 0 20px #00aaff}
-#over{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#ff4444;font-size:40px;font-weight:bold;text-shadow:0 0 20px red;display:none;z-index:30;text-align:center}
-#over button,#win button{margin-top:18px;padding:10px 28px;font-size:17px;border:none;border-radius:6px;cursor:pointer}
-#over button{background:#ff4444;color:#fff}
-#win{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:gold;font-size:40px;font-weight:bold;text-shadow:0 0 30px gold;display:none;z-index:30;text-align:center}
-#win button{background:gold;color:#000}
-</style>
+    <meta charset="UTF-8">
+    <title>Ninja-X: The Golden Awakening</title>
+    <style>
+        body { margin: 0; background: #0a0a0a; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        canvas { border: 4px solid #333; box-shadow: 0 0 20px rgba(0,0,0,0.5); background: #1a1a1a; cursor: none; }
+        #ui { position: absolute; top: 20px; width: 100%; text-align: center; pointer-events: none; font-size: 24px; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; }
+        #capa { position: absolute; background: rgba(0,0,0,0.9); width: 800px; height: 600px; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10; border: 2px solid #ffd700; }
+        h1 { font-size: 70px; margin: 0; color: #00aaff; text-shadow: 3px 3px #000, 0 0 20px #00aaff; }
+        .glow-text { color: #ffd700; text-shadow: 0 0 10px #ffd700; }
+        button { padding: 15px 40px; font-size: 20px; background: #00aaff; border: none; color: white; cursor: pointer; border-radius: 5px; transition: 0.3s; margin-top: 20px; }
+        button:hover { background: #ffd700; color: black; transform: scale(1.1); }
+        #boss-ui { position: absolute; bottom: 50px; width: 500px; height: 20px; border: 2px solid white; display: none; }
+        #boss-bar { height: 100%; background: #a020f0; width: 100%; transition: 0.3s; }
+    </style>
 </head>
 <body>
-<div id="ui">⚔️ Nível: <span id="lvl">1</span> | Mortes: <span id="sc">0</span>/<span id="goal">30</span></div>
-<div id="bossBar"><div id="bossHP"></div></div>
-<div id="msg"></div>
-<div id="startScreen">
-<h1>🗡️ NINJA vs SAMURAIS</h1>
-<p><b>WASD</b> ou <b>Setas</b> para mover</p>
-<p><b>Espaço</b> para atacar</p>
-<p>Derrote samurais → <b style="color:gold">GLOW UP</b> → Enfrente o <b style="color:#a020f0">CHEFÃO</b></p>
-<p style="color:#ff8800;margin-top:8px">3 Níveis com dificuldade crescente!</p>
-<button onclick="startGame()">JOGAR</button>
-</div>
-<div id="over">💀 GAME OVER 💀<br><small id="fs"></small><br><button onclick="location.reload()">Recomeçar</button></div>
-<div id="win">🏆 VITÓRIA ABSOLUTA! 🏆<br><small>Todos os 3 chefões derrotados!</small><br><button onclick="location.reload()">Jogar Novamente</button></div>
-<canvas id="c"></canvas>
+
+    <div id="ui">Kills: <span id="score">0</span> / 30</div>
+    
+    <div id="boss-ui"><div id="boss-bar"></div></div>
+
+    <div id="capa">
+        <h1>NINJA-X</h1>
+        <p>Elimine 30 Samurais para despertar seu poder real.</p>
+        <p style="font-size: 14px;">WASD para Mover | ESPAÇO para Atacar</p>
+        <button onclick="startGame()">INICIAR BATALHA</button>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
 <script>
-// ======== CANVAS ========
-const C=document.getElementById('c'),X=C.getContext('2d');
-C.width=900;C.height=600;
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const scoreEl = document.getElementById('score');
+canvas.width = 800; canvas.height = 600;
 
-// ======== CONFIG POR NÍVEL ========
-// killGoal: mortes para glow up, bossHp, samurai speed range, spawn rate, projéteis
-const LEVELS=[
-  {killGoal:30,bossHp:40,spdMin:1.2,spdMax:2,spawnRate:60,projChance:0,ninjaHp:5,bossSpd:1,bossDmg:2,bossColor:'#7b1fa2',bgGrid:'#151515'},
-  {killGoal:40,bossHp:65,spdMin:1.8,spdMax:2.8,spawnRate:42,projChance:0.008,ninjaHp:8,bossSpd:1.4,bossDmg:3,bossColor:'#b71c1c',bgGrid:'#1a1210'},
-  {killGoal:50,bossHp:100,spdMin:2.2,spdMax:3.5,spawnRate:30,projChance:0.018,ninjaHp:12,bossSpd:1.8,bossDmg:4,bossColor:'#ff6f00',bgGrid:'#1a1515'}
-];
+let gameActive = false;
+let score = 0;
+let glowUp = false;
+let bossActive = false;
 
-// ======== ESTADO ========
-let run=false,level=0,score=0,totalKills=0,glowed=false,glowAnim=0,bossActive=false;
-let shake=0,particles=[],trails=[],keys={},projectiles=[];
-let boss=null,samurais=[],spawnT=0;
+// Configurações do Ninja
+const player = {
+    x: 400, y: 300, size: 30, color: '#00aaff', speed: 5, 
+    isAttacking: false, attackRange: 60, particles: []
+};
 
-// ======== NINJA ========
-const ninja={x:100,y:300,size:32,speed:4,color:'#0088ff',hp:5,maxHp:5,atk:false,atkT:0,atkRange:60,atkCD:0,inv:0};
+// Boss
+const boss = { x: 900, y: 250, size: 100, hp: 100, maxHp: 100, active: false };
 
-function getLvl(){return LEVELS[level];}
+let enemies = [];
+let keys = {};
 
-// ======== CONTROLES ========
-onkeydown=e=>{keys[e.key]=true;if(e.key===' '&&run&&ninja.atkCD<=0){e.preventDefault();ninja.atk=true;ninja.atkT=12;ninja.atkCD=18;}};
-onkeyup=e=>{keys[e.key]=false;};
+window.addEventListener('keydown', e => keys[e.code] = true);
+window.addEventListener('keyup', e => keys[e.code] = false);
 
-// ======== INICIAR JOGO ========
-function startGame(){document.getElementById('startScreen').style.display='none';resetLevel();run=true;loop();}
-
-// ======== RESET DE NÍVEL ========
-function resetLevel(){
-  const L=getLvl();
-  score=0;glowed=false;glowAnim=0;bossActive=false;boss=null;
-  samurais=[];projectiles=[];particles=[];trails=[];spawnT=0;
-  // Reset ninja com stats do nível
-  ninja.x=100;ninja.y=300;ninja.size=32;ninja.speed=4;
-  ninja.color='#0088ff';ninja.hp=L.ninjaHp;ninja.maxHp=L.ninjaHp;
-  ninja.atkRange=60;ninja.atk=false;ninja.atkT=0;ninja.atkCD=0;ninja.inv=0;
-  // Atualizar UI
-  document.getElementById('lvl').textContent=level+1;
-  document.getElementById('sc').textContent=0;
-  document.getElementById('goal').textContent=L.killGoal;
-  document.getElementById('bossBar').style.display='none';
+function startGame() {
+    document.getElementById('capa').style.display = 'none';
+    gameActive = true;
+    spawnEnemy();
 }
 
-// ======== SPAWN SAMURAI ========
-function spawnSam(){
-  if(bossActive)return;
-  const L=getLvl();
-  const edge=Math.random()*4|0;
-  let sx,sy;
-  if(edge===0){sx=C.width+20;sy=Math.random()*C.height;}
-  else if(edge===1){sx=-20;sy=Math.random()*C.height;}
-  else if(edge===2){sx=Math.random()*C.width;sy=-20;}
-  else{sx=Math.random()*C.width;sy=C.height+20;}
-  samurais.push({x:sx,y:sy,size:26,speed:L.spdMin+Math.random()*(L.spdMax-L.spdMin),hp:1,flash:0,shootCD:60+Math.random()*120|0});
+function spawnEnemy() {
+    if (!gameActive || bossActive) return;
+    const side = Math.floor(Math.random() * 4);
+    let x, y;
+    if (side === 0) { x = -30; y = Math.random() * 600; }
+    else if (side === 1) { x = 830; y = Math.random() * 600; }
+    else if (side === 2) { x = Math.random() * 800; y = -30; }
+    else { x = Math.random() * 800; y = 630; }
+    
+    enemies.push({ x, y, size: 25, speed: glowUp ? 1.5 : 2 });
+    setTimeout(spawnEnemy, glowUp ? 400 : 800);
 }
 
-// ======== SPAWN BOSS ========
-function spawnBoss(){
-  const L=getLvl();
-  boss={x:C.width+50,y:C.height/2,size:70+level*10,speed:L.bossSpd,hp:L.bossHp,maxHp:L.bossHp,flash:0,shootCD:40};
-  bossActive=true;
-  document.getElementById('bossBar').style.display='block';
-  document.getElementById('bossHP').style.width='100%';
-  samurais=[];projectiles=[];
-}
+function update() {
+    if (!gameActive) return;
 
-// ======== PARTÍCULAS ========
-function burst(x,y,col,n){for(let i=0;i<n;i++)particles.push({x,y,vx:(Math.random()-.5)*6,vy:(Math.random()-.5)*6,life:20+Math.random()*15,color:col,size:3+Math.random()*4});}
+    // Movimentação
+    if (keys['KeyW'] || keys['ArrowUp']) player.y -= player.speed;
+    if (keys['KeyS'] || keys['ArrowDown']) player.y += player.speed;
+    if (keys['KeyA'] || keys['ArrowLeft']) player.x -= player.speed;
+    if (keys['KeyD'] || keys['ArrowRight']) player.x += player.speed;
 
-// ======== MENSAGEM ========
-function msg(t,d){const e=document.getElementById('msg');e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',d);}
+    // Ataque
+    if (keys['Space']) {
+        player.isAttacking = true;
+        setTimeout(() => player.isAttacking = false, 150);
+    }
 
-// ======== DANO NO NINJA ========
-function hurtNinja(dmg){
-  if(ninja.inv>0)return;
-  ninja.hp-=dmg;ninja.inv=40;shake=8;
-  burst(ninja.x,ninja.y,glowed?'gold':'#0088ff',8);
-  if(ninja.hp<=0){run=false;document.getElementById('fs').textContent='Nível '+(level+1)+' | Total: '+totalKills+' mortes';document.getElementById('over').style.display='block';}
-}
+    // Glow Up Check
+    if (score >= 30 && !glowUp) {
+        glowUp = true;
+        player.color = '#ffd700';
+        player.size = 50;
+        player.speed = 10;
+        player.attackRange = 120;
+        spawnBoss();
+    }
 
-// ======== UPDATE NINJA ========
-function updNinja(){
-  const sp=ninja.speed;
-  if(keys.w||keys.W||keys.ArrowUp)ninja.y-=sp;
-  if(keys.s||keys.S||keys.ArrowDown)ninja.y+=sp;
-  if(keys.a||keys.A||keys.ArrowLeft)ninja.x-=sp;
-  if(keys.d||keys.D||keys.ArrowRight)ninja.x+=sp;
-  const h=ninja.size/2;
-  ninja.x=Math.max(h,Math.min(C.width-h,ninja.x));
-  ninja.y=Math.max(h,Math.min(C.height-h,ninja.y));
-  if(ninja.atkT>0)ninja.atkT--;else ninja.atk=false;
-  if(ninja.atkCD>0)ninja.atkCD--;
-  if(ninja.inv>0)ninja.inv--;
-  if(glowed)trails.push({x:ninja.x,y:ninja.y,size:ninja.size,life:10});
-}
+    // Lógica Inimigos
+    enemies.forEach((en, index) => {
+        const dx = player.x - en.x;
+        const dy = player.y - en.y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        en.x += (dx/dist) * en.speed;
+        en.y += (dy/dist) * en.speed;
 
-// ======== UPDATE SAMURAIS ========
-function updSams(){
-  const L=getLvl();
-  spawnT++;
-  if(spawnT>=L.spawnRate&&!bossActive){spawnSam();spawnT=0;}
-  for(let i=samurais.length-1;i>=0;i--){
-    const s=samurais[i];
-    const dx=ninja.x-s.x,dy=ninja.y-s.y,dist=Math.sqrt(dx*dx+dy*dy)||1;
-    s.x+=dx/dist*s.speed;s.y+=dy/dist*s.speed;
-    if(s.flash>0)s.flash--;
-    // Samurai atira projétil (nível 2+)
-    if(L.projChance>0){s.shootCD--;if(s.shootCD<=0&&Math.random()<0.5){
-      const pd=Math.sqrt(dx*dx+dy*dy)||1;
-      projectiles.push({x:s.x,y:s.y,vx:dx/pd*3.5,vy:dy/pd*3.5,life:120,size:5,color:'#ff8800'});
-      s.shootCD=80+Math.random()*100|0;
-    }}
-    // Ataque do ninja acerta samurai
-    if(ninja.atk&&ninja.atkT>6){
-      const ad=Math.sqrt((ninja.x-s.x)**2+(ninja.y-s.y)**2);
-      if(ad<ninja.atkRange+s.size/2){
-        burst(s.x,s.y,'#ff4444',10);samurais.splice(i,1);
-        score++;totalKills++;shake=5;
-        document.getElementById('sc').textContent=score;
-        // GLOW UP
-        if(score===L.killGoal&&!glowed){
-          glowed=true;glowAnim=90;
-          ninja.color='#ffd700';ninja.size=48;ninja.speed=8;ninja.atkRange=90;
-          // Bônus de HP no glow up
-          ninja.hp=Math.min(ninja.hp+3,ninja.maxHp+3);ninja.maxHp+=3;
-          msg('⚡ GLOW UP! ⚡',2500);burst(ninja.x,ninja.y,'gold',30);
-          setTimeout(spawnBoss,2500);
+        if (player.isAttacking && dist < player.attackRange) {
+            enemies.splice(index, 1);
+            score++;
+            scoreEl.innerText = score;
         }
-        continue;
-      }
+    });
+
+    // Lógica Boss
+    if (bossActive) {
+        const dx = player.x - boss.x;
+        const dy = player.y - boss.y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        boss.x += (dx/dist) * 1.5;
+        boss.y += (dy/dist) * 1.5;
+
+        if (player.isAttacking && dist < player.attackRange + 50) {
+            boss.hp -= 0.5;
+            document.getElementById('boss-bar').style.width = boss.hp + '%';
+            if (boss.hp <= 0) {
+                alert("VITÓRIA LENDÁRIA! O NINJA-X SALVOU O REINO!");
+                location.reload();
+            }
+        }
     }
-    // Samurai encosta no ninja
-    const cd=Math.sqrt((ninja.x-s.x)**2+(ninja.y-s.y)**2);
-    if(cd<(ninja.size/2+s.size/2)){samurais.splice(i,1);hurtNinja(1);}
-  }
+
+    draw();
+    requestAnimationFrame(update);
 }
 
-// ======== UPDATE PROJÉTEIS (esferas dos samurais) ========
-function updProj(){
-  for(let i=projectiles.length-1;i>=0;i--){
-    const p=projectiles[i];
-    p.x+=p.vx;p.y+=p.vy;p.life--;
-    if(p.life<=0||p.x<-20||p.x>C.width+20||p.y<-20||p.y>C.height+20){projectiles.splice(i,1);continue;}
-    // Colisão com ninja
-    const d=Math.sqrt((p.x-ninja.x)**2+(p.y-ninja.y)**2);
-    if(d<ninja.size/2+p.size){projectiles.splice(i,1);hurtNinja(1);burst(ninja.x,ninja.y,'#ff8800',5);}
-  }
+function spawnBoss() {
+    bossActive = true;
+    document.getElementById('boss-ui').style.display = 'block';
 }
 
-// ======== UPDATE BOSS ========
-function updBoss(){
-  if(!boss)return;
-  const L=getLvl();
-  const dx=ninja.x-boss.x,dy=ninja.y-boss.y,dist=Math.sqrt(dx*dx+dy*dy)||1;
-  boss.x+=dx/dist*boss.speed;boss.y+=dy/dist*boss.speed;
-  if(boss.flash>0)boss.flash--;
-  // Boss atira projéteis
-  boss.shootCD--;
-  if(boss.shootCD<=0){
-    const n=level+2; // mais projéteis por nível
-    for(let i=0;i<n;i++){
-      const a=(Math.PI*2/n)*i+Math.random()*0.3;
-      projectiles.push({x:boss.x,y:boss.y,vx:Math.cos(a)*3,vy:Math.sin(a)*3,life:100,size:6,color:'#ff00ff'});
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Efeito de rastro (Glow Up Especial)
+    if (glowUp) {
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = '#ffd700';
     }
-    boss.shootCD=60-level*10;
-  }
-  // Ninja ataca boss
-  if(ninja.atk&&ninja.atkT>6){
-    const ad=Math.sqrt((ninja.x-boss.x)**2+(ninja.y-boss.y)**2);
-    if(ad<ninja.atkRange+boss.size/2&&boss.flash<=0){
-      boss.hp--;boss.flash=10;shake=6;burst(boss.x,boss.y,'#a020f0',8);
-      document.getElementById('bossHP').style.width=(boss.hp/boss.maxHp*100)+'%';
-      if(boss.hp<=0){
-        burst(boss.x,boss.y,'#ff00ff',40);shake=15;boss=null;bossActive=false;
-        document.getElementById('bossBar').style.display='none';
-        // Avançar nível ou vitória
-        if(level>=2){run=false;document.getElementById('win').style.display='block';}
-        else{level++;msg('🎉 NÍVEL '+(level+1)+'!',2500);setTimeout(resetLevel,2600);}
-      }
+
+    // Desenhar Player
+    ctx.fillStyle = player.color;
+    ctx.fillRect(player.x - player.size/2, player.y - player.size/2, player.size, player.size);
+    
+    // Efeito de Ataque
+    if (player.isAttacking) {
+        ctx.strokeStyle = glowUp ? '#fff' : '#00aaff';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(player.x, player.y, player.attackRange, 0, Math.PI * 2);
+        ctx.stroke();
     }
-  }
-  // Boss encosta no ninja
-  if(boss){
-    const cd=Math.sqrt((ninja.x-boss.x)**2+(ninja.y-boss.y)**2);
-    if(cd<(ninja.size/2+boss.size/2))hurtNinja(L.bossDmg);
-  }
+
+    // Desenhar Inimigos
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#ff3333';
+    enemies.forEach(en => {
+        ctx.fillRect(en.x - en.size/2, en.y - en.size/2, en.size, en.size);
+    });
+
+    // Desenhar Boss
+    if (bossActive) {
+        ctx.fillStyle = '#a020f0';
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = '#a020f0';
+        ctx.fillRect(boss.x - boss.size/2, boss.y - boss.size/2, boss.size, boss.size);
+    }
 }
 
-// ======== UPDATE PARTÍCULAS ========
-function updPart(){
-  for(let i=particles.length-1;i>=0;i--){const p=particles[i];p.x+=p.vx;p.y+=p.vy;p.life--;p.vx*=.95;p.vy*=.95;if(p.life<=0)particles.splice(i,1);}
-  for(let i=trails.length-1;i>=0;i--){trails[i].life--;if(trails[i].life<=0)trails.splice(i,1);}
-}
-
-// ======== RENDER ========
-function render(){
-  const L=getLvl();
-  X.save();
-  if(shake>0){X.translate((Math.random()-.5)*shake*2,(Math.random()-.5)*shake*2);shake*=.85;if(shake<.5)shake=0;}
-  // Fundo
-  X.fillStyle='#0a0a0a';X.fillRect(0,0,C.width,C.height);
-  X.strokeStyle=L.bgGrid;X.lineWidth=1;
-  for(let x=0;x<C.width;x+=40){X.beginPath();X.moveTo(x,0);X.lineTo(x,C.height);X.stroke();}
-  for(let y=0;y<C.height;y+=40){X.beginPath();X.moveTo(0,y);X.lineTo(C.width,y);X.stroke();}
-
-  // Indicador de nível no fundo
-  X.fillStyle='rgba(255,255,255,0.03)';X.font='bold 200px sans-serif';X.textAlign='center';
-  X.fillText(''+(level+1),C.width/2,C.height/2+70);
-
-  // Rastros glow
-  for(const t of trails){X.fillStyle=`rgba(255,215,0,${t.life/10*.3})`;X.fillRect(t.x-t.size/2,t.y-t.size/2,t.size,t.size);}
-
-  // Glow up anim
-  if(glowAnim>0){glowAnim--;const r=(90-glowAnim)*3;X.beginPath();X.arc(ninja.x,ninja.y,r,0,Math.PI*2);X.fillStyle=`rgba(255,215,0,${glowAnim/150})`;X.fill();}
-
-  // Projéteis (esferas)
-  for(const p of projectiles){
-    X.beginPath();X.arc(p.x,p.y,p.size,0,Math.PI*2);
-    X.fillStyle=p.color;X.shadowColor=p.color;X.shadowBlur=10;X.fill();X.shadowBlur=0;
-  }
-
-  // Samurais
-  for(const s of samurais){
-    X.save();X.shadowColor='#ff0000';X.shadowBlur=s.flash>0?20:8;
-    X.fillStyle=s.flash>0?'#fff':'#cc2222';
-    X.fillRect(s.x-s.size/2,s.y-s.size/2,s.size,s.size);
-    X.shadowBlur=0;
-    X.fillStyle='#000';X.fillRect(s.x-6,s.y-4,4,4);X.fillRect(s.x+2,s.y-4,4,4);
-    X.fillStyle='#ff4444';X.fillRect(s.x-s.size/2-3,s.y-s.size/2+2,s.size+6,4);
-    X.restore();
-  }
-
-  // Boss
-  if(boss){
-    X.save();X.shadowColor=L.bossColor;X.shadowBlur=boss.flash>0?30:15;
-    X.fillStyle=boss.flash>0?'#fff':L.bossColor;
-    X.fillRect(boss.x-boss.size/2,boss.y-boss.size/2,boss.size,boss.size);
-    X.shadowBlur=0;
-    X.fillStyle='#ff0000';X.fillRect(boss.x-15,boss.y-10,10,8);X.fillRect(boss.x+5,boss.y-10,10,8);
-    X.fillStyle='#ffd700';X.beginPath();
-    X.moveTo(boss.x-20,boss.y-boss.size/2);X.lineTo(boss.x-10,boss.y-boss.size/2-15);
-    X.lineTo(boss.x,boss.y-boss.size/2);X.lineTo(boss.x+10,boss.y-boss.size/2-15);
-    X.lineTo(boss.x+20,boss.y-boss.size/2);X.fill();
-    X.fillStyle='#fff';X.font='bold 12px sans-serif';X.textAlign='center';
-    const bNames=['CHEFÃO','SENHOR SAMURAI','IMPERADOR'];
-    X.fillText(bNames[level]||'CHEFÃO',boss.x,boss.y+boss.size/2+15);
-    X.restore();
-  }
-
-  // Ninja
-  X.save();
-  if(ninja.inv>0&&(ninja.inv/3|0)%2===0)X.globalAlpha=.4;
-  X.shadowColor=glowed?'#ffd700':'#00aaff';X.shadowBlur=glowed?25:12;
-  X.fillStyle=ninja.color;
-  X.fillRect(ninja.x-ninja.size/2,ninja.y-ninja.size/2,ninja.size,ninja.size);
-  X.shadowBlur=0;
-  X.fillStyle='#fff';
-  const eo=ninja.size*.15;
-  X.fillRect(ninja.x-eo-3,ninja.y-eo,5,4);X.fillRect(ninja.x+eo-2,ninja.y-eo,5,4);
-  X.fillStyle=glowed?'#ffaa00':'#0055aa';
-  X.fillRect(ninja.x-ninja.size/2-4,ninja.y-ninja.size/2+3,ninja.size+8,4);
-  // Ataque visual
-  if(ninja.atk){
-    X.beginPath();X.arc(ninja.x,ninja.y,ninja.atkRange,0,Math.PI*2);
-    X.strokeStyle=glowed?'rgba(255,215,0,.6)':'rgba(0,150,255,.5)';X.lineWidth=3;X.stroke();
-    const ang=(Date.now()/50)%(Math.PI*2);
-    X.beginPath();X.moveTo(ninja.x,ninja.y);
-    X.lineTo(ninja.x+Math.cos(ang)*ninja.atkRange,ninja.y+Math.sin(ang)*ninja.atkRange);
-    X.strokeStyle=glowed?'rgba(255,255,200,.8)':'rgba(150,200,255,.7)';X.lineWidth=2;X.stroke();
-  }
-  X.restore();
-
-  // Partículas
-  for(const p of particles){X.globalAlpha=p.life/30;X.fillStyle=p.color;X.fillRect(p.x-p.size/2,p.y-p.size/2,p.size,p.size);}
-  X.globalAlpha=1;
-
-  // HUD HP
-  const bw=150,bh=12,bx=15,by=C.height-30;
-  X.fillStyle='#333';X.fillRect(bx,by,bw,bh);
-  const hp=ninja.hp/ninja.maxHp;
-  X.fillStyle=hp>.5?'#00cc44':hp>.25?'#ffaa00':'#ff2222';
-  X.fillRect(bx,by,bw*Math.max(0,hp),bh);
-  X.strokeStyle='#666';X.strokeRect(bx,by,bw,bh);
-  X.fillStyle='#fff';X.font='11px sans-serif';X.textAlign='left';
-  X.fillText('HP: '+ninja.hp+'/'+ninja.maxHp,bx+5,by+10);
-
-  // Info canto
-  X.fillStyle='#444';X.font='12px sans-serif';X.textAlign='right';
-  X.fillText('WASD/Setas: Mover | Espaço: Atacar',C.width-15,C.height-15);
-  X.textAlign='left';
-  X.restore();
-}
-
-// ======== GAME LOOP ========
-function loop(){if(!run)return;updNinja();updSams();updProj();updBoss();updPart();render();requestAnimationFrame(loop);}
+update();
 </script>
 </body>
 </html>
