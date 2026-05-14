@@ -2,151 +2,189 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>NINJA-X: THE LAST STAND</title>
+    <title>NINJA-X: FINAL VERSION</title>
     <style>
-        body { margin: 0; background: #0a0a0a; overflow: hidden; font-family: 'Courier New', Courier, monospace; display: flex; justify-content: center; align-items: center; height: 100vh; }
-        canvas { background: radial-gradient(circle, #111 0%, #000 100%); border: 3px solid #00aaff; box-shadow: 0 0 30px #00aaff; cursor: crosshair; }
-        #ui-container { position: absolute; top: 20px; width: 800px; display: flex; justify-content: space-between; pointer-events: none; }
-        .stat { color: white; font-size: 20px; font-weight: bold; text-shadow: 2px 2px #000; }
-        #hp-bar-back { width: 200px; height: 20px; background: #333; border: 2px solid #fff; margin-top: 5px; }
-        #hp-bar-fill { width: 100%; height: 100%; background: #ff3333; transition: 0.2s; }
-        #menu { position: absolute; background: rgba(0,0,0,0.9); width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10; border: 4px solid #00aaff; }
-        h1 { color: #00aaff; font-size: 80px; margin: 0; text-shadow: 0 0 20px #00aaff; }
-        button { padding: 15px 50px; font-size: 25px; background: #00aaff; color: white; border: none; cursor: pointer; border-radius: 5px; margin-top: 20px; transition: 0.3s; }
-        button:hover { background: #ffd700; color: black; transform: scale(1.1); }
+        body { margin: 0; background: #050505; color: #fff; font-family: 'Arial Black', sans-serif; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        #game-wrapper { position: relative; border: 5px solid #00aaff; box-shadow: 0 0 40px #00aaff; }
+        canvas { background: #000; display: block; }
+        
+        /* Interface de Usuário */
+        #ui { position: absolute; top: 15px; width: 100%; display: flex; justify-content: space-around; pointer-events: none; z-index: 5; }
+        .stat-box { background: rgba(0,0,0,0.7); padding: 10px 20px; border: 1px solid #00aaff; border-radius: 5px; }
+        #hp-container { width: 150px; height: 15px; background: #333; border: 1px solid #fff; margin-top: 5px; }
+        #hp-fill { width: 100%; height: 100%; background: #ff3333; transition: 0.2s; }
+        
+        /* Menu de Início e Fim */
+        #overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10; text-align: center; }
+        h1 { font-size: 80px; color: #00aaff; margin: 0; text-shadow: 0 0 20px #00aaff; }
+        .btn { padding: 15px 45px; font-size: 22px; background: #00aaff; color: white; border: none; cursor: pointer; border-radius: 50px; margin-top: 20px; transition: 0.3s; }
+        .btn:hover { background: #ffd700; color: #000; transform: scale(1.1); box-shadow: 0 0 20px #ffd700; }
     </style>
 </head>
 <body>
 
-    <div id="menu">
-        <h1>NINJA-X</h1>
-        <p style="color: #aaa; font-size: 18px;">WASD - Mover | ESPAÇO - Atacar</p>
-        <button onclick="iniciar()">INICIAR BATALHA</button>
-    </div>
-
-    <div id="ui-container">
-        <div>
-            <div class="stat">ENERGIA NINJA</div>
-            <div id="hp-bar-back"><div id="hp-bar-fill"></div></div>
+<div id="game-wrapper">
+    <div id="ui">
+        <div class="stat-box">
+            VITALIDADE
+            <div id="hp-container"><div id="hp-fill"></div></div>
         </div>
-        <div class="stat">KILLS: <span id="score">0</span> / 30</div>
+        <div class="stat-box">ABATES: <span id="score">0</span> / 30</div>
     </div>
 
-    <canvas id="game"></canvas>
+    <div id="overlay">
+        <h1 id="title">NINJA-X</h1>
+        <p id="desc">Sobreviva aos Samurais e desperte o poder dourado.</p>
+        <p style="color: #666;">Use WASD para mover e ESPAÇO para atacar</p>
+        <button class="btn" onclick="initGame()">INICIAR COMBATE</button>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+</div>
 
 <script>
-const canvas = document.getElementById('game');
+const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-canvas.width = 800; canvas.height = 600;
+canvas.width = 900; canvas.height = 600;
 
-let gameActive = false;
+// Estados do Jogo
+let running = false;
 let score = 0;
-let glowUp = false;
-let ninjaHP = 100;
-let bossActive = false;
+let hp = 100;
+let isGlowUp = false;
+let bossMode = false;
 
-const player = { x: 400, y: 300, size: 30, speed: 5, color: '#00aaff', attacking: false };
-const enemies = [];
-const particles = [];
-const boss = { x: 900, y: 300, size: 100, hp: 100, active: false };
+// Objetos
+const ninja = { x: 450, y: 300, size: 35, speed: 5, color: '#00aaff', attacking: false };
+const boss = { x: 1000, y: 300, size: 110, hp: 100, active: false };
+let enemies = [];
+let particles = [];
 let keys = {};
 
 window.addEventListener('keydown', e => keys[e.code] = true);
 window.addEventListener('keyup', e => keys[e.code] = false);
 
-function iniciar() {
-    document.getElementById('menu').style.display = 'none';
-    gameActive = true;
-    spawnEnemy();
-    loop();
+function initGame() {
+    document.getElementById('overlay').style.display = 'none';
+    running = true;
+    score = 0; hp = 100; enemies = []; particles = [];
+    document.getElementById('hp-fill').style.width = '100%';
+    document.getElementById('score').innerText = '0';
+    spawnSamurai();
+    requestAnimationFrame(gameLoop);
 }
 
-function spawnEnemy() {
-    if (!gameActive || bossActive) return;
-    const x = Math.random() > 0.5 ? -50 : 850;
-    const y = Math.random() * 600;
-    enemies.push({ x, y, size: 25, speed: glowUp ? 1.5 : 2 });
-    setTimeout(spawnEnemy, glowUp ? 400 : 800);
+function spawnSamurai() {
+    if (!running || bossMode) return;
+    // Surge sempre fora da tela de forma aleatória
+    let x, y;
+    if (Math.random() > 0.5) {
+        x = Math.random() > 0.5 ? -50 : canvas.width + 50;
+        y = Math.random() * canvas.height;
+    } else {
+        x = Math.random() * canvas.width;
+        y = Math.random() > 0.5 ? -50 : canvas.height + 50;
+    }
+    enemies.push({ x, y, size: 28, speed: 2 });
+    // Spawn fica mais rápido com o tempo
+    let nextSpawn = isGlowUp ? 400 : 900;
+    setTimeout(spawnSamurai, nextSpawn);
 }
 
-function createEffect(x, y, color) {
-    for(let i=0; i<8; i++) {
-        particles.push({x, y, vx: (Math.random()-0.5)*10, vy: (Math.random()-0.5)*10, life: 15, color});
+function createExplosion(x, y, color) {
+    for (let i = 0; i < 8; i++) {
+        particles.push({
+            x, y, 
+            vx: (Math.random() - 0.5) * 8, 
+            vy: (Math.random() - 0.5) * 8, 
+            life: 20, color
+        });
     }
 }
 
-function loop() {
-    if (!gameActive) return;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+function gameLoop() {
+    if (!running) return;
 
-    // Movimentação
-    if (keys['KeyW']) player.y -= player.speed;
-    if (keys['KeyS']) player.y += player.speed;
-    if (keys['KeyA']) player.x -= player.speed;
-    if (keys['KeyD']) player.x += player.speed;
+    // 1. LIMPAR TELA
+    ctx.fillStyle = "rgba(0, 0, 0, 0.3)"; // Efeito de rastro leve
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Ataque
-    if (keys['Space'] && !player.attacking) {
-        player.attacking = true;
-        setTimeout(() => player.attacking = false, 200);
+    // 2. MOVIMENTO NINJA
+    if (keys['KeyW']) ninja.y -= ninja.speed;
+    if (keys['KeyS']) ninja.y += ninja.speed;
+    if (keys['KeyA']) ninja.x -= ninja.speed;
+    if (keys['KeyD']) ninja.x += ninja.speed;
+
+    // Limites de tela
+    ninja.x = Math.max(20, Math.min(canvas.width - 20, ninja.x));
+    ninja.y = Math.max(20, Math.min(canvas.height - 20, ninja.y));
+
+    // 3. ATAQUE
+    if (keys['Space'] && !ninja.attacking) {
+        ninja.attacking = true;
+        setTimeout(() => ninja.attacking = false, 200);
     }
 
-    // Glow Up (30 Kills)
-    if (score >= 30 && !glowUp) {
-        glowUp = true;
-        player.color = '#ffd700';
-        player.speed = 9;
-        player.size = 45;
-        bossActive = true;
+    // 4. VERIFICAR GLOW UP
+    if (score >= 30 && !isGlowUp) {
+        isGlowUp = true;
+        ninja.color = '#ffd700';
+        ninja.speed = 9;
+        ninja.size = 55;
+        bossMode = true;
+        boss.active = true;
     }
 
-    // Inimigos
-    enemies.forEach((en, i) => {
-        const dx = player.x - en.x;
-        const dy = player.y - en.y;
+    // 5. PROCESSAR INIMIGOS
+    enemies.forEach((en, index) => {
+        const dx = ninja.x - en.x;
+        const dy = ninja.y - en.y;
         const dist = Math.sqrt(dx*dx + dy*dy);
         
         en.x += (dx/dist) * en.speed;
         en.y += (dy/dist) * en.speed;
 
-        // Ninja Toma Dano (Se não estiver atacando)
-        if (dist < 30 && !player.attacking) {
-            ninjaHP -= 0.5;
-            document.getElementById('hp-bar-fill').style.width = ninjaHP + "%";
-            if (ninjaHP <= 0) {
-                alert("NINJA DERROTADO! TENTE NOVAMENTE.");
-                location.reload();
-            }
+        // Desenhar Samurai (Vermelho Neon)
+        ctx.shadowBlur = 10; ctx.shadowColor = "red";
+        ctx.fillStyle = "#ff2222";
+        ctx.fillRect(en.x - en.size/2, en.y - en.size/2, en.size, en.size);
+
+        // Colisão Dano (Ninja toma dano se for tocado e não estiver atacando)
+        if (dist < (ninja.size/2 + en.size/2) && !ninja.attacking) {
+            hp -= 0.3;
+            document.getElementById('hp-fill').style.width = hp + '%';
+            if (hp <= 0) gameOver("VOCÊ FOI DERROTADO!");
         }
 
-        // Ninja Mata Inimigo
-        if (player.attacking && dist < (glowUp ? 100 : 70)) {
-            createEffect(en.x, en.y, 'red');
-            enemies.splice(i, 1);
+        // Colisão Ataque (Ninja mata inimigo)
+        if (ninja.attacking && dist < (isGlowUp ? 120 : 80)) {
+            createExplosion(en.x, en.y, "red");
+            enemies.splice(index, 1);
             score++;
             document.getElementById('score').innerText = score;
         }
     });
 
-    // Boss Final
-    if (bossActive) {
-        const bdx = player.x - boss.x;
-        const bdy = player.y - boss.y;
+    // 6. PROCESSAR CHEFÃO
+    if (boss.active) {
+        const bdx = ninja.x - boss.x;
+        const bdy = ninja.y - boss.y;
         const bDist = Math.sqrt(bdx*bdx + bdy*bdy);
-        boss.x += (bdx/bDist) * 1.5; boss.y += (bdy/bDist) * 1.5;
-        
-        ctx.fillStyle = '#a020f0';
-        ctx.shadowBlur = 20; ctx.shadowColor = '#a020f0';
-        ctx.fillRect(boss.x-50, boss.y-50, 100, 100);
+        boss.x += (bdx/bDist) * 1.5;
+        boss.y += (bdy/bDist) * 1.5;
 
-        if (player.attacking && bDist < 120) {
+        ctx.shadowBlur = 20; ctx.shadowColor = "#a020f0";
+        ctx.fillStyle = "#a020f0";
+        ctx.fillRect(boss.x - boss.size/2, boss.y - boss.size/2, boss.size, boss.size);
+
+        if (ninja.attacking && bDist < (boss.size + 40)) {
             boss.hp -= 0.5;
-            createEffect(boss.x, boss.y, '#a020f0');
-            if (boss.hp <= 0) { alert("MESTRE SAMURAI DERROTADO! NOTA 10!"); location.reload(); }
+            createExplosion(boss.x, boss.y, "#a020f0");
+            if (boss.hp <= 0) gameOver("VITÓRIA! O NINJA DOURADO REINA!");
         }
     }
 
-    // Partículas
+    // 7. PARTÍCULAS
     particles.forEach((p, i) => {
         p.x += p.vx; p.y += p.vy; p.life--;
         ctx.fillStyle = p.color;
@@ -154,20 +192,28 @@ function loop() {
         if (p.life <= 0) particles.splice(i, 1);
     });
 
-    // Desenhar Ninja
-    ctx.shadowBlur = 20; ctx.shadowColor = player.color;
-    ctx.fillStyle = player.color;
-    ctx.fillRect(player.x - player.size/2, player.y - player.size/2, player.size, player.size);
-    
-    if (player.attacking) {
-        ctx.strokeStyle = "white"; ctx.lineWidth = 4;
+    // 8. DESENHAR NINJA
+    ctx.shadowBlur = 20; ctx.shadowColor = ninja.color;
+    ctx.fillStyle = ninja.color;
+    ctx.fillRect(ninja.x - ninja.size/2, ninja.y - ninja.size/2, ninja.size, ninja.size);
+
+    if (ninja.attacking) {
         ctx.beginPath();
-        ctx.arc(player.x, player.y, glowUp ? 100 : 60, 0, Math.PI*2);
+        ctx.strokeStyle = "white";
+        ctx.lineWidth = 5;
+        ctx.arc(ninja.x, ninja.y, isGlowUp ? 110 : 70, 0, Math.PI * 2);
         ctx.stroke();
     }
 
     ctx.shadowBlur = 0;
-    requestAnimationFrame(loop);
+    requestAnimationFrame(gameLoop);
+}
+
+function gameOver(txt) {
+    running = false;
+    document.getElementById('overlay').style.display = 'flex';
+    document.getElementById('title').innerText = "FIM DE JOGO";
+    document.getElementById('desc').innerText = txt;
 }
 </script>
 </body>
