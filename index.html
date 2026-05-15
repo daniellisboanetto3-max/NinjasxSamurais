@@ -2,170 +2,178 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>NINJA-X: ASCENSION</title>
+    <title>NINJA-X: LEGACY</title>
     <style>
-        body { margin: 0; background: #020202; overflow: hidden; font-family: 'Segoe UI', Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; }
-        #game-ui { position: absolute; top: 20px; width: 900px; display: flex; justify-content: space-between; z-index: 5; pointer-events: none; }
-        .hud-item { background: rgba(0,0,0,0.8); padding: 15px; border: 2px solid #00aaff; border-radius: 10px; box-shadow: 0 0 15px rgba(0,170,255,0.4); }
-        .bar-bg { width: 200px; height: 12px; background: #222; border-radius: 6px; overflow: hidden; margin-top: 8px; border: 1px solid #444; }
-        #hp-fill { width: 100%; height: 100%; background: linear-gradient(90deg, #ff0000, #ff5555); transition: 0.3s; }
-        #lvl-tag { color: #ffd700; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
-        #overlay { position: absolute; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10; text-align: center; border: 4px solid #00aaff; }
-        h1 { font-size: 90px; margin: 0; background: linear-gradient(#00aaff, #fff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 20px #00aaff); }
-        .btn { padding: 18px 60px; font-size: 24px; background: #00aaff; color: white; border: none; cursor: pointer; border-radius: 5px; margin-top: 30px; transition: 0.4s; font-weight: bold; }
-        .btn:hover { background: #ffd700; color: #000; box-shadow: 0 0 30px #ffd700; transform: scale(1.1); }
+        body { margin: 0; background: #000; overflow: hidden; font-family: 'Orbitron', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        #ui { position: absolute; top: 20px; width: 950px; display: flex; justify-content: space-between; z-index: 5; pointer-events: none; }
+        .card { background: rgba(0, 0, 0, 0.85); padding: 12px 25px; border-left: 5px solid #00aaff; border-radius: 4px; box-shadow: 0 0 15px rgba(0,170,255,0.3); }
+        .hp-bar { width: 200px; height: 10px; background: #111; border: 1px solid #444; margin-top: 8px; position: relative; }
+        #hp-fill { width: 100%; height: 100%; background: linear-gradient(90deg, #ff0044, #ff8800); box-shadow: 0 0 10px #ff0044; transition: 0.2s; }
+        #lvl-text { color: #ffd700; font-size: 14px; text-transform: uppercase; letter-spacing: 2px; }
+        #overlay { position: absolute; width: 100%; height: 100%; background: rgba(0,0,0,0.95); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10; border: 2px solid #00aaff; }
+        h1 { font-size: 100px; margin: 0; color: #fff; text-shadow: 0 0 20px #00aaff, 0 0 40px #00aaff; letter-spacing: 10px; }
+        .btn { padding: 20px 80px; font-size: 28px; background: none; border: 2px solid #00aaff; color: #00aaff; cursor: pointer; transition: 0.3s; font-weight: bold; margin-top: 40px; }
+        .btn:hover { background: #00aaff; color: #000; box-shadow: 0 0 40px #00aaff; transform: scale(1.05); }
     </style>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&display=swap" rel="stylesheet">
 </head>
 <body>
 
-<div id="game-ui">
-    <div class="hud-item">
-        <span id="lvl-tag">Nível 1: Aprendiz</span>
-        <div class="bar-bg"><div id="hp-fill"></div></div>
+<div id="ui">
+    <div class="card">
+        <div id="lvl-text">Status: Iniciando...</div>
+        <div class="hp-bar"><div id="hp-fill"></div></div>
     </div>
-    <div class="hud-item" style="color: white; font-size: 20px;">
-        KILLS: <span id="score" style="color: #00aaff;">0</span> / 30
+    <div class="card" style="text-align: right; border-left: none; border-right: 5px solid #ffd700;">
+        <div style="color: #aaa; font-size: 12px;">SCORE TOTAL</div>
+        <div id="score" style="color: #fff; font-size: 28px; font-weight: 900;">0</div>
     </div>
 </div>
 
 <div id="overlay">
     <h1 id="m-title">NINJA-X</h1>
-    <p id="m-desc" style="color: #888; font-size: 20px;">Use Setas ou WASD para mover | ESPAÇO para Atacar</p>
-    <button class="btn" onclick="start()">BATALHAR</button>
+    <p id="m-desc" style="color: #00aaff; font-size: 18px;">EVOLUA PARA SOBREVIVER</p>
+    <button class="btn" onclick="init()">ENTRAR NA ARENA</button>
 </div>
 
-<canvas id="c"></canvas>
+<canvas id="canvas"></canvas>
 
 <script>
-const canvas = document.getElementById('c');
+const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
-canvas.width = 1000; canvas.height = 650;
+canvas.width = 1100; canvas.height = 650;
 
-let run = false, score = 0, hp = 100, level = 1, bossMode = false;
-let player = { x: 500, y: 325, size: 30, color: '#00aaff', speed: 5, atk: false, range: 70 };
-let enemies = [], particles = [], keys = {};
-let boss = { x: 1200, y: 325, size: 120, hp: 200, maxHp: 200 };
+let active = false, score = 0, hp = 100, level = 1, enemies = [], particles = [], keys = {};
+let p = { x: 550, y: 325, s: 30, c: '#00aaff', spd: 5, atk: false, range: 75 };
+let boss = { x: 1300, y: 325, s: 130, hp: 300, max: 300, active: false };
 
 window.onkeydown = e => keys[e.code] = true;
 window.onkeyup = e => keys[e.code] = false;
 
-function start() {
+function init() {
     document.getElementById('overlay').style.display = 'none';
-    run = true; score = 0; hp = 100; level = 1; enemies = []; bossMode = false;
+    active = true; score = 0; hp = 100; level = 1; enemies = []; boss.active = false;
     spawn();
     loop();
 }
 
 function spawn() {
-    if(!run || bossMode) return;
-    let x = Math.random() > 0.5 ? -50 : 1050;
-    let y = Math.random() * canvas.height;
-    // Dificuldade sobe com o score
-    enemies.push({ x, y, size: 28, s: 2 + (score * 0.1) });
-    setTimeout(spawn, Math.max(200, 1000 - (score * 30)));
+    if(!active || boss.active) return;
+    let side = Math.random() > 0.5;
+    enemies.push({ 
+        x: side ? -50 : canvas.width + 50, 
+        y: Math.random() * canvas.height, 
+        s: 28, 
+        spd: 1.5 + (level * 1.2) // Dificuldade aumenta por nível
+    });
+    // Spawn acelera conforme nível
+    let rate = level == 1 ? 1000 : (level == 2 ? 600 : 400);
+    setTimeout(spawn, rate);
 }
 
-function part(x, y, c) {
-    for(let i=0; i<10; i++) particles.push({x, y, vx:(Math.random()-0.5)*10, vy:(Math.random()-0.5)*10, l:20, c});
+function drawEntity(x, y, s, color, glow) {
+    ctx.shadowBlur = glow;
+    ctx.shadowColor = color;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 3;
+    ctx.strokeRect(x - s/2, y - s/2, s, s);
+    ctx.fillStyle = "rgba(255,255,255,0.1)";
+    ctx.fillRect(x - s/2, y - s/2, s, s);
+    // Núcleo
+    ctx.fillStyle = color;
+    ctx.fillRect(x - 4, y - 4, 8, 8);
 }
 
 function loop() {
-    if(!run) return;
-    ctx.fillStyle = 'rgba(0,0,0,0.2)'; // Efeito trail
-    ctx.fillRect(0,0,canvas.width, canvas.height);
+    if(!active) return;
+    ctx.fillStyle = 'rgba(0,0,0,0.15)'; // Rastro de movimento
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Movimentação (Setas + WASD)
-    if(keys.ArrowUp || keys.KeyW) player.y -= player.speed;
-    if(keys.ArrowDown || keys.KeyS) player.y += player.speed;
-    if(keys.ArrowLeft || keys.KeyA) player.x -= player.speed;
-    if(keys.ArrowRight || keys.KeyD) player.x += player.speed;
+    // Movimento Suave (Setas + WASD)
+    let mx = 0, my = 0;
+    if(keys.ArrowUp || keys.KeyW) my = -1;
+    if(keys.ArrowDown || keys.KeyS) my = 1;
+    if(keys.ArrowLeft || keys.KeyA) mx = -1;
+    if(keys.ArrowRight || keys.KeyD) mx = 1;
+    p.x += mx * p.spd; p.y += my * p.spd;
 
-    // Ataque
-    if(keys.Space && !player.atk) {
-        player.atk = true;
-        setTimeout(() => player.atk = false, 200);
+    // Sistema de Ataque
+    if(keys.Space && !p.atk) {
+        p.atk = true;
+        setTimeout(() => p.atk = false, 150);
     }
 
-    // Evolução de Níveis
+    // LÓGICA DE NÍVEIS E GLOW UP
     if(score >= 15 && level == 1) {
-        level = 2; player.color = '#00ffff'; player.speed = 7; player.range = 90;
-        document.getElementById('lvl-tag').innerText = "Nível 2: Guerreiro";
+        level = 2; hp = 100; p.c = '#ff00ff'; p.spd = 7; p.range = 100;
+        document.getElementById('lvl-text').innerText = "Nível 2: Mestre das Sombras";
     }
-    if(score >= 30 && level == 2) {
-        level = 3; player.color = '#ffd700'; player.speed = 10; player.range = 140; player.size = 50;
-        bossMode = true;
-        document.getElementById('lvl-tag').innerText = "Nível Final: Mestre Dourado";
+    if(score >= 35 && level == 2) {
+        level = 3; hp = 100; p.c = '#ffd700'; p.spd = 10; p.range = 150; p.s = 50;
+        boss.active = true;
+        document.getElementById('lvl-text').innerText = "Nível 3: DEUS NINJA (GLOW UP)";
     }
 
-    // Processar Inimigos
+    // Inimigos
     enemies.forEach((en, i) => {
-        let dx = player.x - en.x, dy = player.y - en.y, d = Math.sqrt(dx*dx+dy*dy);
-        en.x += (dx/d) * en.s; en.y += (dy/d) * en.s;
+        let dx = p.x - en.x, dy = p.y - en.y, dist = Math.sqrt(dx*dx+dy*dy);
+        en.x += (dx/dist) * en.spd; en.y += (dy/dist) * en.spd;
 
-        // Desenhar Samurai
-        ctx.shadowBlur = 10; ctx.shadowColor = 'red';
-        ctx.fillStyle = '#ff3333';
-        ctx.fillRect(en.x-14, en.y-14, 28, 28);
+        drawEntity(en.x, en.y, en.s, '#ff3333', 10);
 
-        // Dano no Player
-        if(d < 30 && !player.atk) {
-            hp -= 0.5;
+        // Dano
+        if(dist < 30 && !p.atk) {
+            hp -= level == 3 ? 0.8 : 0.4;
             document.getElementById('hp-fill').style.width = hp + '%';
-            if(hp <= 0) end("VOCÊ CAIU EM COMBATE!");
+            if(hp <= 0) die("VOCÊ FOI ELIMINADO!");
         }
 
-        // Ataque do Player
-        if(player.atk && d < player.range) {
-            part(en.x, en.y, 'red'); enemies.splice(i, 1);
-            score++; document.getElementById('score').innerText = score;
+        // Morte Inimigo
+        if(p.atk && dist < p.range) {
+            enemies.splice(i, 1);
+            score++;
+            document.getElementById('score').innerText = score;
+            for(let j=0; j<5; j++) particles.push({x:en.x, y:en.y, vx:(Math.random()-0.5)*5, vy:(Math.random()-0.5)*5, l:15, c:'#ff3333'});
         }
     });
 
-    // Boss
-    if(bossMode) {
-        let bdx = player.x - boss.x, bdy = player.y - boss.y, bd = Math.sqrt(bdx*bdx+bdy*bdy);
-        boss.x += (bdx/bd) * 2; boss.y += (bdy/bd) * 2;
+    // Boss Battle
+    if(boss.active) {
+        let bdx = p.x - boss.x, bdy = p.y - boss.y, bd = Math.sqrt(bdx*bdx+bdy*bdy);
+        boss.x += (bdx/bd) * 2.5; boss.y += (bdy/bd) * 2.5;
+        drawEntity(boss.x, boss.y, boss.s, '#a020f0', 30);
         
-        ctx.shadowBlur = 30; ctx.shadowColor = '#a020f0';
-        ctx.fillStyle = '#a020f0';
-        ctx.fillRect(boss.x-60, boss.y-60, 120, 120);
+        // Vida do Boss (barra flutuante)
+        ctx.fillStyle = '#222'; ctx.fillRect(boss.x-50, boss.y-80, 100, 5);
+        ctx.fillStyle = '#a020f0'; ctx.fillRect(boss.x-50, boss.y-80, (boss.hp/boss.max)*100, 5);
 
-        // Boss causa dano real
-        if(bd < 80) {
-            hp -= 1; document.getElementById('hp-fill').style.width = hp + '%';
-            if(hp <= 0) end("O MESTRE SAMURAI TE VENCEU!");
+        if(bd < 80) { hp -= 1.5; document.getElementById('hp-fill').style.width = hp + '%'; }
+        if(p.atk && bd < p.range + 50) {
+            boss.hp -= 2;
+            if(boss.hp <= 0) die("VITÓRIA SUPREMA! VOCÊ É O NINJA-X!");
         }
+    }
 
-        if(player.atk && bd < player.range + 40) {
-            boss.hp -= 1; part(boss.x, boss.y, '#a020f0');
-            if(boss.hp <= 0) end("VITÓRIA LENDÁRIA! VOCÊ SE TORNOU O NINJA-X!");
-        }
+    // Desenhar Ninja
+    drawEntity(p.x, p.y, p.s, p.c, 25);
+    if(p.atk) {
+        ctx.beginPath(); ctx.strokeStyle = p.c; ctx.lineWidth = 5;
+        ctx.arc(p.x, p.y, p.range, 0, Math.PI*2); ctx.stroke();
     }
 
     // Partículas
-    particles.forEach((p, i) => {
-        p.x += p.vx; p.y += p.vy; p.l--;
-        ctx.fillStyle = p.c;
-        ctx.fillRect(p.x, p.y, 3, 3);
-        if(p.l <= 0) particles.splice(i,1);
+    particles.forEach((pt, i) => {
+        pt.x += pt.vx; pt.y += pt.vy; pt.l--;
+        ctx.fillStyle = pt.c; ctx.fillRect(pt.x, pt.y, 2, 2);
+        if(pt.l <= 0) particles.splice(i, 1);
     });
-
-    // Player
-    ctx.shadowBlur = 20; ctx.shadowColor = player.color;
-    ctx.fillStyle = player.color;
-    ctx.fillRect(player.x - player.size/2, player.y - player.size/2, player.size, player.size);
-
-    if(player.atk) {
-        ctx.strokeStyle = "white"; ctx.lineWidth = 5;
-        ctx.beginPath(); ctx.arc(player.x, player.y, player.range, 0, Math.PI*2); ctx.stroke();
-    }
 
     ctx.shadowBlur = 0;
     requestAnimationFrame(loop);
 }
 
-function end(t) {
-    run = false;
+function die(t) {
+    active = false;
     document.getElementById('overlay').style.display = 'flex';
     document.getElementById('m-title').innerText = "FIM";
     document.getElementById('m-desc').innerText = t;
