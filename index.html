@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>NINJA-X: TOTAL WAR (ELITE EDITION)</title>
+    <title>NINJA-X: TOTAL WAR (FINAL)</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&display=swap');
         body { margin: 0; background: #000; overflow: hidden; font-family: 'Orbitron', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; color: #fff; }
@@ -15,7 +15,7 @@
         #lvl-tag { color: #00aaff; font-size: 14px; font-weight: 900; letter-spacing: 2px; margin-bottom: 10px; }
         #score-box { text-align: right; border-left: none; border-right: 5px solid #ffd700; }
         #score-val { color: #fff; font-size: 32px; font-weight: 900; text-shadow: 0 0 10px #ffd700; }
-        #overlay { position: absolute; width: 100%; height: 100%; background: rgba(0,0,0,0.96); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10; border: 4px solid #00aaff; }
+        #overlay { position: absolute; width: 100%; height: 100%; background: rgba(0,0,0,0.96); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10; border: 4px solid #00aaff; text-align: center; }
         h1 { font-size: 100px; margin: 0; color: #fff; text-shadow: 0 0 20px #00aaff, 0 0 60px #00aaff; letter-spacing: 10px; }
         .btn { padding: 22px 90px; font-size: 24px; background: none; border: 2px solid #00aaff; color: #00aaff; cursor: pointer; transition: 0.3s; font-weight: 900; margin-top: 30px; border-radius: 4px; text-transform: uppercase; letter-spacing: 4px; }
         .btn:hover { background: #00aaff; color: #000; box-shadow: 0 0 50px #00aaff; transform: scale(1.05); }
@@ -41,7 +41,7 @@
 <div id="overlay">
     <h1 id="m-title">NINJA-X</h1>
     <p id="m-desc" style="color: #00aaff; font-size: 18px; letter-spacing: 2px;">WASD/Setas: Move | Espaço: Ataca (Clique Único)</p>
-    <button class="btn" onclick="init()">Entrar na Arena</button>
+    <button class="btn" id="start-btn" onclick="init()">Entrar na Arena</button>
 </div>
 
 <div id="warning">VITALIDADE ESGOTADA!</div>
@@ -63,14 +63,25 @@ window.onkeyup = e => { keys[e.code] = false; delete lastKeys[e.code]; };
 
 function init() {
     document.getElementById('overlay').style.display = 'none';
-    active = true; hp = 100; maxHp = 100; level = 1; killsLvl = 0; stamina = 100;
+    // Reset Total do Jogo para permitir Replay
+    active = true; 
+    level = 1;
+    maxHp = 100;
+    hp = 100;
+    killsLvl = 0;
+    stamina = 100;
+    maxStamina = 100;
     enemies = []; bullets = []; lasers = []; 
+    boss.active = false;
+    document.getElementById('lvl-tag').innerText = "FASE 1: APRENDIZ";
+    document.getElementById('score-val').innerText = "0 / 30";
     resetPlayerStatus();
     spawn(); loop();
 }
 
 function resetPlayerStatus() {
     p.glow = false; p.c = '#00aaff'; p.s = 30; p.spd = 6 + (level * 1.5); p.range = 90;
+    p.x = 550; p.y = 325;
 }
 
 function spawn() {
@@ -178,8 +189,6 @@ function loop() {
         if(ls.l <= 0) lasers.splice(i, 1);
     });
 
-    particles.forEach((pt, i) => { pt.x += pt.vx; pt.y += pt.vy; pt.l--; ctx.fillStyle = pt.c; ctx.fillRect(pt.x, pt.y, 4, 4); if(pt.l <= 0) particles.splice(i, 1); });
-
     drawEntity(p.x, p.y, p.s, p.c, 30);
     if(p.atk) { ctx.beginPath(); ctx.strokeStyle = p.c; ctx.lineWidth = 7; ctx.arc(p.x, p.y, p.range, 0, Math.PI*2); ctx.stroke(); }
 
@@ -192,7 +201,7 @@ function loop() {
 function advance() {
     level++;
     boss.active = false;
-    enemies = []; bullets = []; lasers = []; // Limpa a arena
+    enemies = []; bullets = []; lasers = [];
     if(level > 3) return gameOver("VITÓRIA LENDÁRIA!");
     
     killsLvl = 0;
@@ -201,14 +210,15 @@ function advance() {
     
     document.getElementById('lvl-tag').innerText = "FASE " + level + (level === 2 ? ": GUERREIRO" : ": LENDA");
     document.getElementById('score-val').innerText = "0 / 30";
-    setTimeout(spawn, 1000); // Dá um tempo para o jogador respirar
+    setTimeout(spawn, 1000);
 }
 
 function gameOver(t) {
     active = false;
     document.getElementById('overlay').style.display = 'flex';
     document.getElementById('m-title').innerText = t;
-    document.getElementById('m-desc').innerText = "Obrigado por jogar Ninja-X!";
+    document.getElementById('m-desc').innerText = t === "VITÓRIA LENDÁRIA!" ? "Você salvou o mundo Ninja-X!" : "Tente novamente para se tornar um mestre.";
+    document.getElementById('start-btn').innerText = "Voltar ao Início";
 }
 </script>
 </body>
