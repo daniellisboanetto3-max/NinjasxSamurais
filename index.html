@@ -2,37 +2,37 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>NINJA-X: TRIPLE THREAT</title>
+    <title>NINJA-X: TOTAL WAR (FINAL EDITION)</title>
     <style>
         body { margin: 0; background: #000; overflow: hidden; font-family: 'Arial Black', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; }
-        #ui { position: absolute; top: 20px; width: 900px; display: flex; justify-content: space-between; z-index: 5; pointer-events: none; }
-        .hud-card { background: rgba(0, 0, 0, 0.8); padding: 15px; border-left: 4px solid #00aaff; border-radius: 4px; box-shadow: 0 0 20px rgba(0,170,255,0.2); }
-        .bar-container { width: 200px; height: 14px; background: #222; border: 1px solid #444; margin-top: 8px; border-radius: 10px; overflow: hidden; }
-        #hp-fill { width: 100%; height: 100%; background: linear-gradient(90deg, #ff0044, #ff8800); box-shadow: 0 0 10px #ff0044; transition: 0.2s; }
+        #ui { position: absolute; top: 20px; width: 950px; display: flex; justify-content: space-between; z-index: 5; pointer-events: none; }
+        .hud-card { background: rgba(0, 0, 0, 0.85); padding: 15px; border-left: 5px solid #00aaff; border-radius: 4px; box-shadow: 0 0 25px rgba(0,170,255,0.3); }
+        .bar-container { width: 220px; height: 16px; background: #111; border: 1px solid #444; margin-top: 8px; border-radius: 20px; overflow: hidden; }
+        #hp-fill { width: 100%; height: 100%; background: linear-gradient(90deg, #ff0044, #ff8800); box-shadow: 0 0 15px #ff0044; transition: 0.2s; }
         #lvl-tag { color: #00aaff; font-size: 14px; text-transform: uppercase; letter-spacing: 2px; }
-        #overlay { position: absolute; width: 100%; height: 100%; background: rgba(0,0,0,0.95); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10; border: 3px solid #00aaff; }
-        h1 { font-size: 100px; margin: 0; color: #fff; text-shadow: 0 0 20px #00aaff, 0 0 50px #00aaff; }
-        .btn { padding: 20px 80px; font-size: 28px; background: #00aaff; color: #000; border: none; cursor: pointer; transition: 0.3s; font-weight: bold; margin-top: 30px; border-radius: 50px; }
-        .btn:hover { background: #ffd700; transform: scale(1.1); box-shadow: 0 0 30px #ffd700; }
+        #overlay { position: absolute; width: 100%; height: 100%; background: rgba(0,0,0,0.95); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10; border: 4px solid #00aaff; }
+        h1 { font-size: 110px; margin: 0; color: #fff; text-shadow: 0 0 20px #00aaff, 0 0 60px #00aaff; letter-spacing: 5px; }
+        .btn { padding: 22px 90px; font-size: 30px; background: #00aaff; color: #000; border: none; cursor: pointer; transition: 0.3s; font-weight: bold; margin-top: 30px; border-radius: 60px; }
+        .btn:hover { background: #ffd700; transform: scale(1.1); box-shadow: 0 0 40px #ffd700; }
     </style>
 </head>
 <body>
 
 <div id="ui">
     <div class="hud-card">
-        <div id="lvl-tag">NÍVEL 1: INICIANTE</div>
+        <div id="lvl-tag">FASE 1: APRENDIZ</div>
         <div class="bar-container"><div id="hp-fill"></div></div>
     </div>
-    <div class="hud-card" style="text-align: right; border-left: none; border-right: 4px solid #ffd700;">
-        <div style="color: #aaa; font-size: 12px;">INIMIGOS</div>
-        <div id="score" style="color: #fff; font-size: 28px;">0 / 30</div>
+    <div class="hud-card" style="text-align: right; border-left: none; border-right: 5px solid #ffd700;">
+        <div style="color: #aaa; font-size: 12px;">SCORE DA FASE</div>
+        <div id="score" style="color: #fff; font-size: 30px;">0 / 30</div>
     </div>
 </div>
 
 <div id="overlay">
     <h1 id="m-title">NINJA-X</h1>
-    <p id="m-desc" style="color: #00aaff; font-size: 20px;">W,A,S,D ou SETAS para Mover | ESPAÇO para Atacar</p>
-    <button class="btn" onclick="init()">INICIAR COMBATE</button>
+    <p id="m-desc" style="color: #00aaff; font-size: 22px;">BLOQUEIE A TELA E DESTRUA OS SAMURAIS</p>
+    <button class="btn" onclick="init()">COMEÇAR</button>
 </div>
 
 <canvas id="game"></canvas>
@@ -42,18 +42,18 @@ const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 canvas.width = 1100; canvas.height = 650;
 
-let active = false, score = 0, hp = 100, maxHp = 100, level = 1, killsLvl = 0;
-let p = { x: 550, y: 325, s: 30, c: '#00aaff', spd: 5, atk: false, range: 80, glow: false };
+let active = false, scoreTotal = 0, hp = 100, maxHp = 100, level = 1, killsLvl = 0;
+let p = { x: 550, y: 325, s: 30, c: '#00aaff', spd: 6, atk: false, range: 85, glow: false, dmg: 1 };
 let enemies = [], bullets = [], particles = [], keys = {};
-let boss = { x: 1300, y: 325, s: 130, hp: 100, max: 100, active: false, c: '#a020f0' };
+let boss = { x: 1300, y: 325, s: 140, hp: 0, max: 100, active: false, c: '#a020f0' };
 
 window.onkeydown = e => keys[e.code] = true;
 window.onkeyup = e => keys[e.code] = false;
 
 function init() {
     document.getElementById('overlay').style.display = 'none';
-    active = true; score = 0; hp = 100; maxHp = 100; level = 1; killsLvl = 0;
-    enemies = []; bullets = []; p.glow = false;
+    active = true; hp = 100; maxHp = 100; level = 1; killsLvl = 0;
+    enemies = []; bullets = []; p.glow = false; p.spd = 6;
     spawn(); loop();
 }
 
@@ -61,14 +61,14 @@ function spawn() {
     if(!active || boss.active) return;
     let side = Math.random() > 0.5;
     enemies.push({ 
-        x: side ? -50 : canvas.width + 50, 
+        x: side ? -60 : canvas.width + 60, 
         y: Math.random() * canvas.height, 
-        s: 30, 
-        spd: 1.5 + (level * 1.0),
+        s: 32, 
+        spd: 2.2 + (level * 1.3), // Inimigos bem mais rápidos
         shield: level === 3 ? 1 : 0,
         lastShot: Date.now()
     });
-    setTimeout(spawn, Math.max(300, 1000 - (level * 200)));
+    setTimeout(spawn, Math.max(250, 900 - (level * 250)));
 }
 
 function drawEntity(x, y, s, color, glow, shield = 0) {
@@ -76,127 +76,123 @@ function drawEntity(x, y, s, color, glow, shield = 0) {
     ctx.strokeStyle = color; ctx.lineWidth = 3;
     ctx.strokeRect(x - s/2, y - s/2, s, s);
     if(shield > 0) {
-        ctx.strokeStyle = "#fff"; ctx.lineWidth = 2;
-        ctx.strokeRect(x - (s+10)/2, y - (s+10)/2, s+10, s+10);
+        ctx.strokeStyle = "#fff"; ctx.lineWidth = 3;
+        ctx.strokeRect(x - (s+12)/2, y - (s+12)/2, s+12, s+12);
     }
-    ctx.fillStyle = "rgba(255,255,255,0.1)";
+    ctx.fillStyle = "rgba(255,255,255,0.05)";
     ctx.fillRect(x - s/2, y - s/2, s, s);
 }
 
 function loop() {
     if(!active) return;
-    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Movimentação (WASD + Setas)
+    // Movimentação + Trava de Tela (Boundary Lock)
     let mx = 0, my = 0;
     if(keys.ArrowUp || keys.KeyW) my = -1;
     if(keys.ArrowDown || keys.KeyS) my = 1;
     if(keys.ArrowLeft || keys.KeyA) mx = -1;
     if(keys.ArrowRight || keys.KeyD) mx = 1;
-    p.x += mx * p.spd; p.y += my * p.spd;
+    
+    p.x += mx * p.spd;
+    p.y += my * p.spd;
 
-    // Ataque
+    // Lógica de Barreira: impede de sair da tela
+    if (p.x < p.s/2) p.x = p.s/2;
+    if (p.x > canvas.width - p.s/2) p.x = canvas.width - p.s/2;
+    if (p.y < p.s/2) p.y = p.s/2;
+    if (p.y > canvas.height - p.s/2) p.y = canvas.height - p.s/2;
+
     if(keys.Space && !p.atk) {
         p.atk = true;
         setTimeout(() => p.atk = false, 150);
     }
 
-    // Sistema de GLOW UP (Resetado a cada nível)
     if(killsLvl >= 30 && !boss.active) {
         boss.active = true;
-        boss.hp = 100 + (level * 100); boss.max = boss.hp;
+        boss.hp = 150 * level; boss.max = boss.hp;
         boss.x = 1300; boss.y = 325;
         boss.c = level === 1 ? '#a020f0' : (level === 2 ? '#00ff00' : '#ffffff');
-        p.glow = true; p.c = '#ffd700'; p.spd = 9; p.range = 160; p.s = 50;
+        p.glow = true; p.c = '#ffd700'; p.spd = 11; p.range = 180; p.s = 55;
     }
 
-    // Inimigos
     enemies.forEach((en, i) => {
         let dx = p.x - en.x, dy = p.y - en.y, d = Math.sqrt(dx*dx+dy*dy);
         en.x += (dx/d) * en.spd; en.y += (dy/d) * en.spd;
 
-        // Nível 2 e 3: Atiram
-        if(level >= 2 && d < 450 && Date.now() - en.lastShot > 2000) {
-            bullets.push({x: en.x, y: en.y, vx: (dx/d)*6, vy: (dy/d)*6, c: '#ff0044'});
+        if(level >= 2 && d < 500 && Date.now() - en.lastShot > 1800) {
+            bullets.push({x: en.x, y: en.y, vx: (dx/d)*7, vy: (dy/d)*7, c: '#ff0044'});
             en.lastShot = Date.now();
         }
 
         drawEntity(en.x, en.y, en.s, '#ff3333', 15, en.shield);
 
-        // Dano no Ninja
-        if(d < 30 && !p.atk) {
-            hp -= 0.6;
-            if(hp <= 0) gameOver("VOCÊ FOI DERROTADO!");
+        if(d < 35 && !p.atk) {
+            hp -= 0.8;
+            if(hp <= 0) gameOver("DERROTADO PELO EXÉRCITO!");
         }
 
-        // Ataque do Ninja
         if(p.atk && d < p.range) {
             if(en.shield > 0) { 
-                en.shield = 0; p.atk = false; // Gasta o ataque no escudo
-                for(let j=0; j<5; j++) particles.push({x:en.x, y:en.y, vx:(Math.random()-0.5)*5, vy:(Math.random()-0.5)*5, l:10, c:'#fff'});
+                en.shield = 0; p.atk = false;
+                for(let j=0; j<5; j++) particles.push({x:en.x, y:en.y, vx:(Math.random()-0.5)*8, vy:(Math.random()-0.5)*8, l:12, c:'#fff'});
             } else {
                 enemies.splice(i, 1);
-                killsLvl++; score++;
+                killsLvl++;
                 document.getElementById('score').innerText = killsLvl + " / 30";
-                for(let j=0; j<8; j++) particles.push({x:en.x, y:en.y, vx:(Math.random()-0.5)*10, vy:(Math.random()-0.5)*10, l:15, c:'#ff3333'});
+                for(let j=0; j<10; j++) particles.push({x:en.x, y:en.y, vx:(Math.random()-0.5)*12, vy:(Math.random()-0.5)*12, l:20, c:'#ff3333'});
             }
         }
     });
 
-    // Tiros dos inimigos
     bullets.forEach((b, i) => {
         b.x += b.vx; b.y += b.vy;
-        drawEntity(b.x, b.y, 10, b.c, 10);
+        drawEntity(b.x, b.y, 12, b.c, 10);
         let d = Math.sqrt((p.x-b.x)**2 + (p.y-b.y)**2);
-        if(d < 25) { hp -= 10; bullets.splice(i, 1); }
-        if(b.x < 0 || b.x > 1100 || b.y < 0 || b.y > 650) bullets.splice(i, 1);
+        if(d < 30) { hp -= 12; bullets.splice(i, 1); }
+        if(b.x < -50 || b.x > 1150 || b.y < -50 || b.y > 700) bullets.splice(i, 1);
     });
 
-    // BOSS FIGHT
     if(boss.active) {
         let bdx = p.x - boss.x, bdy = p.y - boss.y, bd = Math.sqrt(bdx*bdx+bdy*bdy);
-        boss.x += (bdx/bd) * (2 + level); boss.y += (bdy/bd) * (2 + level);
-        drawEntity(boss.x, boss.y, boss.s, boss.c, 40, level === 3 ? 1 : 0);
+        boss.x += (bdx/bd) * (2.5 + level); boss.y += (bdy/bd) * (2.5 + level);
+        drawEntity(boss.x, boss.y, boss.s, boss.c, 50, level === 3 ? 1 : 0);
 
-        // Barra do Boss
-        ctx.fillStyle = '#111'; ctx.fillRect(boss.x-50, boss.y-90, 100, 8);
-        ctx.fillStyle = boss.c; ctx.fillRect(boss.x-50, boss.y-90, (boss.hp/boss.max)*100, 8);
+        ctx.fillStyle = '#111'; ctx.fillRect(boss.x-60, boss.y-100, 120, 10);
+        ctx.fillStyle = boss.c; ctx.fillRect(boss.x-60, boss.y-100, (boss.hp/boss.max)*120, 10);
 
-        if(bd < 80) hp -= 1.5; // Boss dá muito dano
+        if(bd < 90) hp -= 2;
 
-        if(p.atk && bd < p.range + 50) {
-            boss.hp -= (0.4 + (level * 0.2)); // Seu dano aumenta por nível
+        if(p.atk && bd < p.range + 60) {
+            boss.hp -= (0.5 + (level * 0.5)); // Dano escala com o nível
             if(boss.hp <= 0) advance();
         }
     }
 
-    // Partículas
     particles.forEach((pt, i) => {
         pt.x += pt.vx; pt.y += pt.vy; pt.l--;
         ctx.fillStyle = pt.c; ctx.fillRect(pt.x, pt.y, 3, 3);
         if(pt.l <= 0) particles.splice(i, 1);
     });
 
-    // Desenhar Player
-    drawEntity(p.x, p.y, p.s, p.c, 25);
+    drawEntity(p.x, p.y, p.s, p.c, 30);
     if(p.atk) {
-        ctx.beginPath(); ctx.strokeStyle = p.c; ctx.lineWidth = 5;
+        ctx.beginPath(); ctx.strokeStyle = p.c; ctx.lineWidth = 6;
         ctx.arc(p.x, p.y, p.range, 0, Math.PI*2); ctx.stroke();
     }
 
     document.getElementById('hp-fill').style.width = (hp/maxHp)*100 + '%';
-    ctx.shadowBlur = 0;
     requestAnimationFrame(loop);
 }
 
 function advance() {
     level++;
-    if(level > 3) { gameOver("VITÓRIA TOTAL! VOCÊ É A LENDA NINJA-X"); return; }
+    if(level > 3) { gameOver("VITÓRIA LENDÁRIA: VOCÊ É O NINJA-X!"); return; }
     boss.active = false; killsLvl = 0;
-    maxHp += 50; hp = maxHp; // Upgrade de Vida
-    p.glow = false; p.c = '#00aaff'; p.spd = 5; p.s = 30; p.range = 80; // Reset Glow Up
-    document.getElementById('lvl-tag').innerText = "NÍVEL " + level + (level === 2 ? ": GUERREIRO" : ": LENDA");
+    maxHp += 75; hp = maxHp; 
+    p.glow = false; p.c = '#00aaff'; p.spd = 6 + level; p.s = 30; p.range = 85;
+    document.getElementById('lvl-tag').innerText = "FASE " + level + (level === 2 ? ": GUERREIRO" : ": LENDA");
     document.getElementById('score').innerText = "0 / 30";
     spawn();
 }
@@ -204,7 +200,7 @@ function advance() {
 function gameOver(t) {
     active = false;
     document.getElementById('overlay').style.display = 'flex';
-    document.getElementById('m-title').innerText = "FIM";
+    document.getElementById('m-title').innerText = "RESULTADO";
     document.getElementById('m-desc').innerText = t;
 }
 </script>
