@@ -47,7 +47,7 @@
 
 <div id="overlay">
     <h1 id="m-title">NINJA-X</h1>
-    <p id="m-desc" style="color: #00aaff; font-size: 18px; letter-spacing: 2px;">WASD: Move | Espaço: Ataque (Clique Único)</p>
+    <p id="m-desc" style="color: #00aaff; font-size: 18px; letter-spacing: 2px;">WASD: Move | Espaço: Ataque</p>
     <button class="btn" id="start-btn" onclick="init()">Entrar na Arena</button>
 </div>
 
@@ -60,7 +60,7 @@ canvas.width = 1100; canvas.height = 650;
 
 let active = false, hp = 100, maxHp = 100, level = 1, killsLvl = 0;
 let stamina = 100, maxStamina = 100, canAtk = true;
-let blackAura = 0, isBlackAura = false, swordAngle = 0;
+let blackAura = 0, isBlackAura = false;
 let p = { x: 550, y: 325, s: 30, c: '#00aaff', spd: 6, atk: false, range: 100, glow: false, dmgMult: 1 };
 let enemies = [], bullets = [], particles = [], lasers = [], keys = {}, lastKeys = {};
 let boss = { x: 1300, y: 325, s: 150, hp: 0, max: 100, active: false, c: '#a020f0', lastAction: 0 };
@@ -82,8 +82,7 @@ function init() {
 
 function resetPlayerStatus() {
     p.glow = false; p.c = '#00aaff'; p.s = 30; p.spd = 6 + (level * 1.2); 
-    // Alcance aumenta conforme o nível
-    p.range = level === 3 ? 140 : 100; 
+    p.range = level === 3 ? 145 : 100; 
     p.dmgMult = 1; p.x = 550; p.y = 325;
 }
 
@@ -110,22 +109,25 @@ function loop() {
     p.x = Math.max(p.s/2, Math.min(canvas.width - p.s/2, p.x));
     p.y = Math.max(p.s/2, Math.min(canvas.height - p.s/2, p.y));
 
+    // LÓGICA DE STAMINA (Regen Ultra Rápida na Aura Negra)
     if(isBlackAura) {
         blackAura -= 1.8;
+        if (stamina < maxStamina) stamina += 4.5; // Regeneração Berserker (5x mais rápida)
         document.getElementById('aura-fill').style.width = (blackAura / 600 * 100) + '%';
         if(blackAura <= 0) { 
             isBlackAura = false; p.c = '#ffd700'; p.dmgMult = 1; 
-            p.range = 140; // Volta para o alcance base alto do lvl 3
+            p.range = 145;
             document.getElementById('aura-card').style.display = 'none'; 
         }
-    } else { if (stamina < maxStamina) stamina += 0.8; }
+    } else { 
+        if (stamina < maxStamina) stamina += 0.8; 
+    }
 
     if (stamina < 25 && !isBlackAura) canAtk = false;
     if (stamina >= 25) canAtk = true;
 
     if(keys.Space && (isBlackAura || !lastKeys['Space']) && canAtk && !p.atk) {
-        p.atk = true; if(!isBlackAura) stamina -= 22; lastKeys['Space'] = true;
-        swordAngle = 0;
+        p.atk = true; stamina -= 22; lastKeys['Space'] = true;
         setTimeout(() => p.atk = false, 150);
     }
 
@@ -136,8 +138,8 @@ function loop() {
         p.glow = true; p.spd = 13; p.s = 60;
         
         if(level === 3) {
-            isBlackAura = true; blackAura = 600; p.c = '#000'; p.dmgMult = 4;
-            p.range = 230; // Alcance massivo na Aura Negra
+            isBlackAura = true; blackAura = 600; p.c = '#000'; p.dmgMult = 4.5;
+            p.range = 240; 
             hp = maxHp * 1.5; document.getElementById('aura-card').style.display = 'block';
         } else { 
             p.c = '#ffd700'; 
@@ -199,19 +201,12 @@ function loop() {
     ctx.strokeRect(p.x-p.s/2, p.y-p.s/2, p.s, p.s);
 
     if(p.atk) {
-        ctx.beginPath(); ctx.strokeStyle = p.c; ctx.globalAlpha = 0.3; ctx.lineWidth = 10;
-        ctx.arc(p.x, p.y, p.range, 0, Math.PI*2); ctx.stroke(); ctx.globalAlpha = 1.0;
-        
-        swordAngle += 0.8;
-        ctx.save();
-        ctx.translate(p.x, p.y);
-        ctx.rotate(swordAngle);
-        ctx.beginPath();
-        ctx.strokeStyle = p.c; ctx.lineWidth = 6; ctx.shadowBlur = 20;
-        ctx.moveTo(0, 0); ctx.lineTo(p.range + 20, 0); 
-        ctx.stroke();
-        ctx.fillStyle = "#fff"; ctx.fillRect(p.range + 10, -3, 10, 6);
-        ctx.restore();
+        ctx.beginPath(); ctx.strokeStyle = p.c; 
+        ctx.lineWidth = isBlackAura ? 12 : 6;
+        ctx.shadowBlur = isBlackAura ? 40 : 20;
+        ctx.arc(p.x, p.y, p.range, 0, Math.PI*2); ctx.stroke(); 
+        ctx.beginPath(); ctx.globalAlpha = 0.2; ctx.fillStyle = p.c;
+        ctx.arc(p.x, p.y, p.range, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha = 1.0;
     }
 
     document.getElementById('hp-fill').style.width = Math.max(0, (hp/maxHp)*100) + '%';
