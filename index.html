@@ -2,24 +2,25 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>NINJA-X: TOTAL WAR (FINAL)</title>
+    <title>NINJA-X: BLACK AURA EDITION</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&display=swap');
         body { margin: 0; background: #000; overflow: hidden; font-family: 'Orbitron', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; color: #fff; }
         #ui { position: absolute; top: 20px; width: 950px; display: flex; justify-content: space-between; z-index: 5; pointer-events: none; }
-        .hud-card { background: rgba(0, 0, 0, 0.85); padding: 15px; border-left: 5px solid #00aaff; border-radius: 4px; box-shadow: 0 0 25px rgba(0,170,255,0.3); min-width: 250px; }
+        .hud-card { background: rgba(0, 0, 0, 0.85); padding: 15px; border-left: 5px solid #00aaff; border-radius: 4px; box-shadow: 0 0 25px rgba(0,170,255,0.3); min-width: 260px; }
         .bar-label { font-size: 10px; letter-spacing: 1px; color: #aaa; margin-bottom: 2px; text-transform: uppercase; }
         .bar-container { width: 100%; height: 12px; background: #111; border: 1px solid #333; border-radius: 6px; overflow: hidden; margin-bottom: 8px; }
         #hp-fill { width: 100%; height: 100%; background: linear-gradient(90deg, #ff0044, #ff8800); box-shadow: 0 0 15px #ff0044; transition: 0.2s; }
         #stamina-fill { width: 100%; height: 100%; background: linear-gradient(90deg, #00ff88, #00aaff); box-shadow: 0 0 10px #00ff88; }
+        #aura-card { display: none; margin-top: 5px; border-left-color: #a020f0; }
+        #aura-fill { width: 100%; height: 100%; background: linear-gradient(90deg, #5500ff, #000); box-shadow: 0 0 15px #a020f0; }
         #lvl-tag { color: #00aaff; font-size: 14px; font-weight: 900; letter-spacing: 2px; margin-bottom: 10px; }
-        #score-box { text-align: right; border-left: none; border-right: 5px solid #ffd700; }
         #score-val { color: #fff; font-size: 32px; font-weight: 900; text-shadow: 0 0 10px #ffd700; }
         #overlay { position: absolute; width: 100%; height: 100%; background: rgba(0,0,0,0.96); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10; border: 4px solid #00aaff; text-align: center; }
         h1 { font-size: 100px; margin: 0; color: #fff; text-shadow: 0 0 20px #00aaff, 0 0 60px #00aaff; letter-spacing: 10px; }
         .btn { padding: 22px 90px; font-size: 24px; background: none; border: 2px solid #00aaff; color: #00aaff; cursor: pointer; transition: 0.3s; font-weight: 900; margin-top: 30px; border-radius: 4px; text-transform: uppercase; letter-spacing: 4px; }
         .btn:hover { background: #00aaff; color: #000; box-shadow: 0 0 50px #00aaff; transform: scale(1.05); }
-        #warning { color: #ff0044; font-weight: bold; position: absolute; bottom: 50px; opacity: 0; transition: 0.3s; z-index: 20; pointer-events: none;}
+        #warning { color: #ff0044; font-weight: bold; position: absolute; bottom: 50px; opacity: 0; transition: 0.3s; z-index: 20; text-align: center;}
     </style>
 </head>
 <body>
@@ -27,12 +28,16 @@
 <div id="ui">
     <div class="hud-card">
         <div id="lvl-tag">FASE 1: APRENDIZ</div>
-        <div class="bar-label">Vida do Ninja</div>
+        <div class="bar-label">Vida</div>
         <div class="bar-container"><div id="hp-fill"></div></div>
-        <div class="bar-label">Vitalidade (Ataque)</div>
+        <div class="bar-label">Vitalidade</div>
         <div class="bar-container"><div id="stamina-fill"></div></div>
+        <div id="aura-card">
+            <div class="bar-label" style="color:#a020f0">Aura Negra</div>
+            <div class="bar-container"><div id="aura-fill"></div></div>
+        </div>
     </div>
-    <div class="hud-card" id="score-box">
+    <div class="hud-card" style="text-align: right; border-left: none; border-right: 5px solid #ffd700;">
         <div class="bar-label">Samurais Abatidos</div>
         <div id="score-val">0 / 30</div>
     </div>
@@ -40,7 +45,7 @@
 
 <div id="overlay">
     <h1 id="m-title">NINJA-X</h1>
-    <p id="m-desc" style="color: #00aaff; font-size: 18px; letter-spacing: 2px;">WASD/Setas: Move | Espaço: Ataca (Clique Único)</p>
+    <p id="m-desc" style="color: #00aaff; font-size: 18px; letter-spacing: 2px;">WASD: Move | Espaço: Ataca</p>
     <button class="btn" id="start-btn" onclick="init()">Entrar na Arena</button>
 </div>
 
@@ -54,7 +59,8 @@ canvas.width = 1100; canvas.height = 650;
 
 let active = false, hp = 100, maxHp = 100, level = 1, killsLvl = 0;
 let stamina = 100, maxStamina = 100, canAtk = true;
-let p = { x: 550, y: 325, s: 30, c: '#00aaff', spd: 6, atk: false, range: 90, glow: false };
+let blackAura = 0, isBlackAura = false;
+let p = { x: 550, y: 325, s: 30, c: '#00aaff', spd: 6, atk: false, range: 90, glow: false, dmgMult: 1 };
 let enemies = [], bullets = [], particles = [], lasers = [], keys = {}, lastKeys = {};
 let boss = { x: 1300, y: 325, s: 150, hp: 0, max: 100, active: false, c: '#a020f0', lastAction: 0 };
 
@@ -63,24 +69,16 @@ window.onkeyup = e => { keys[e.code] = false; delete lastKeys[e.code]; };
 
 function init() {
     document.getElementById('overlay').style.display = 'none';
-    // Reset Total do Jogo para permitir Replay
-    active = true; 
-    level = 1;
-    maxHp = 100;
-    hp = 100;
-    killsLvl = 0;
-    stamina = 100;
-    maxStamina = 100;
-    enemies = []; bullets = []; lasers = []; 
-    boss.active = false;
+    active = true; level = 1; maxHp = 100; hp = 100; killsLvl = 0; stamina = 100; maxStamina = 100;
+    enemies = []; bullets = []; lasers = []; boss.active = false; isBlackAura = false;
     document.getElementById('lvl-tag').innerText = "FASE 1: APRENDIZ";
-    document.getElementById('score-val').innerText = "0 / 30";
+    document.getElementById('aura-card').style.display = 'none';
     resetPlayerStatus();
     spawn(); loop();
 }
 
 function resetPlayerStatus() {
-    p.glow = false; p.c = '#00aaff'; p.s = 30; p.spd = 6 + (level * 1.5); p.range = 90;
+    p.glow = false; p.c = '#00aaff'; p.s = 30; p.spd = 6 + (level * 1.2); p.range = 90; p.dmgMult = 1;
     p.x = 550; p.y = 325;
 }
 
@@ -90,65 +88,80 @@ function spawn() {
     enemies.push({ 
         x: side ? -70 : canvas.width + 70, 
         y: Math.random() * canvas.height, 
-        s: 32, 
-        spd: 2.2 + (level * 1.3), 
-        shield: level === 3 ? 1 : 0,
-        lastShot: Date.now()
+        s: 32, spd: 2.2 + (level * 1.3), shield: level === 3 ? 1 : 0, lastShot: Date.now()
     });
     setTimeout(spawn, Math.max(150, 900 - (level * 200)));
-}
-
-function drawEntity(x, y, s, color, glow, shield = 0) {
-    ctx.shadowBlur = glow; ctx.shadowColor = color;
-    ctx.strokeStyle = color; ctx.lineWidth = 3;
-    ctx.strokeRect(x - s/2, y - s/2, s, s);
-    if(shield > 0) {
-        ctx.strokeStyle = "#fff"; ctx.lineWidth = 4;
-        ctx.strokeRect(x - (s+14)/2, y - (s+14)/2, s+14, s+14);
-    }
-    ctx.fillStyle = "rgba(255,255,255,0.05)"; ctx.fillRect(x - s/2, y - s/2, s, s);
 }
 
 function loop() {
     if(!active) return;
     ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+    // Movimentação
     let mx = 0, my = 0;
-    if(keys.ArrowUp || keys.KeyW) my = -1;
-    if(keys.ArrowDown || keys.KeyS) my = 1;
-    if(keys.ArrowLeft || keys.KeyA) mx = -1;
-    if(keys.ArrowRight || keys.KeyD) mx = 1;
-    
+    if(keys.ArrowUp || keys.KeyW) my = -1; if(keys.ArrowDown || keys.KeyS) my = 1;
+    if(keys.ArrowLeft || keys.KeyA) mx = -1; if(keys.ArrowRight || keys.KeyD) mx = 1;
     p.x += mx * p.spd; p.y += my * p.spd;
     p.x = Math.max(p.s/2, Math.min(canvas.width - p.s/2, p.x));
     p.y = Math.max(p.s/2, Math.min(canvas.height - p.s/2, p.y));
 
-    if (stamina < maxStamina) stamina += 0.6; 
+    // Lógica de Aura Negra
+    if(isBlackAura) {
+        blackAura -= 1.4; // Dura aprox 7 seg a 60fps
+        stamina = maxStamina;
+        document.getElementById('aura-fill').style.width = (blackAura / 600 * 100) + '%';
+        if(blackAura <= 0) {
+            isBlackAura = false;
+            p.c = '#ffd700'; p.dmgMult = 1;
+            document.getElementById('aura-card').style.display = 'none';
+        }
+    } else {
+        if (stamina < maxStamina) stamina += 0.7; 
+    }
+
     if (stamina <= 0) { canAtk = false; document.getElementById('warning').style.opacity = 1; }
     if (stamina >= 25) { canAtk = true; document.getElementById('warning').style.opacity = 0; }
 
-    if(keys.Space && !lastKeys['Space'] && canAtk && !p.atk) {
-        p.atk = true; stamina -= 22; lastKeys['Space'] = true;
-        setTimeout(() => p.atk = false, 150);
+    // Ataque
+    let canSpam = isBlackAura;
+    if(keys.Space && (canSpam || !lastKeys['Space']) && canAtk && !p.atk) {
+        p.atk = true; if(!isBlackAura) stamina -= 22; lastKeys['Space'] = true;
+        setTimeout(() => p.atk = false, 120);
     }
 
+    // Glow Up Trigger
     if(killsLvl >= 30 && !boss.active) {
-        boss.active = true;
-        boss.hp = 250 * level; boss.max = boss.hp;
+        boss.active = true; boss.hp = 300 * level; boss.max = boss.hp;
         boss.x = 1300; boss.y = 325;
         boss.c = level === 1 ? '#ff00ff' : (level === 2 ? '#00ff00' : '#ffffff');
-        p.glow = true; p.c = '#ffd700'; p.spd = 12; p.range = 200; p.s = 55;
+        
+        p.glow = true; p.spd = 13; p.range = 210; p.s = 60;
+        if(level === 3) {
+            isBlackAura = true; blackAura = 600; p.c = '#000'; p.dmgMult = 3;
+            hp = maxHp * 1.5; // Vida reforçada temporária
+            document.getElementById('aura-card').style.display = 'block';
+        } else {
+            p.c = '#ffd700';
+        }
     }
 
+    // IA Inimigos
     enemies.forEach((en, i) => {
         let dx = p.x - en.x, dy = p.y - en.y, d = Math.sqrt(dx*dx+dy*dy);
-        en.x += (dx/d) * en.spd; en.y += (dy/d) * en.spd;
-        if(level >= 2 && d < 500 && Date.now() - en.lastShot > 1500) {
-            bullets.push({x: en.x, y: en.y, vx: (dx/d)*8, vy: (dy/d)*8, c: '#ff3300'});
+        // IA de cerco para invocados
+        let moveX = (dx/d) * en.spd;
+        let moveY = (dy/d) * en.spd;
+        if(en.isSummoned) { moveX += en.offX; moveY += en.offY; }
+        en.x += moveX; en.y += moveY;
+
+        if(level >= 2 && d < 500 && Date.now() - en.lastShot > 1400) {
+            bullets.push({x: en.x, y: en.y, vx: (dx/d)*9, vy: (dy/d)*9, c: '#ff3300'});
             en.lastShot = Date.now();
         }
-        drawEntity(en.x, en.y, en.s, '#ff0000', 15, en.shield);
-        if(d < 35 && !p.atk) hp -= 1.8;
+        ctx.shadowBlur = 15; ctx.shadowColor = en.shield > 0 ? '#fff' : '#ff0000';
+        ctx.strokeStyle = en.shield > 0 ? '#fff' : '#ff0000'; ctx.strokeRect(en.x-16, en.y-16, 32, 32);
+
+        if(d < 40 && !p.atk) hp -= isBlackAura ? 0.5 : 2;
         if(p.atk && d < p.range) {
             if(en.shield > 0) { en.shield = 0; p.atk = false; } 
             else { enemies.splice(i, 1); killsLvl++; }
@@ -156,41 +169,46 @@ function loop() {
         }
     });
 
+    // Bullets & Lasers
     bullets.forEach((b, i) => {
         b.x += b.vx; b.y += b.vy;
-        drawEntity(b.x, b.y, 14, b.c, 10);
-        if(Math.sqrt((p.x-b.x)**2 + (p.y-b.y)**2) < 30) { hp -= 15; bullets.splice(i, 1); }
-        if(b.x < -100 || b.x > 1200 || b.y < -100 || b.y > 750) bullets.splice(i, 1);
+        ctx.fillStyle = b.c; ctx.fillRect(b.x-7, b.y-7, 14, 14);
+        if(Math.sqrt((p.x-b.x)**2 + (p.y-b.y)**2) < 30) { hp -= isBlackAura ? 5 : 15; bullets.splice(i, 1); }
     });
 
     if(boss.active) {
         let bdx = p.x - boss.x, bdy = p.y - boss.y, bd = Math.sqrt(bdx*bdx+bdy*bdy);
-        boss.x += (bdx/bd) * (3.5 + level); boss.y += (bdy/bd) * (3.5 + level);
-        drawEntity(boss.x, boss.y, boss.s, boss.c, 60, level === 3 ? 2 : 0);
-        ctx.fillStyle = boss.c; ctx.fillRect(boss.x-75, boss.y-110, (boss.hp/boss.max)*150, 12);
+        boss.x += (bdx/bd) * (4 + level); boss.y += (bdy/bd) * (4 + level);
+        ctx.shadowBlur = 50; ctx.shadowColor = boss.c;
+        ctx.strokeStyle = boss.c; ctx.lineWidth = 5; ctx.strokeRect(boss.x-75, boss.y-75, 150, 150);
+        ctx.fillStyle = boss.c; ctx.fillRect(boss.x-75, boss.y-115, (boss.hp/boss.max)*150, 15);
 
         let now = Date.now();
-        if (now - boss.lastAction > 1800) {
-            lasers.push({x: boss.x, y: boss.y, tx: p.x, ty: p.y, l: 35, c: boss.c});
+        if (now - boss.lastAction > 1600) {
+            lasers.push({x: boss.x, y: boss.y, tx: p.x, ty: p.y, l: 30, c: boss.c});
+            if(level === 3) lasers.push({x: boss.x, y: boss.y, tx: p.x + 100, ty: p.y - 100, l: 30, c: boss.c});
             if (level >= 2) {
-                for(let k=0; k<2 + level; k++) enemies.push({x: boss.x + (Math.random()*100-50), y: boss.y + (Math.random()*100-50), s: 32, spd: 4, shield: 0, lastShot: now});
+                for(let k=0; k<3+level; k++) {
+                    enemies.push({x: boss.x, y: boss.y, s: 32, spd: 5, shield: 0, lastShot: now, isSummoned: true, offX: Math.random()*4-2, offY: Math.random()*4-2});
+                }
             }
             boss.lastAction = now;
         }
-        if(bd < 100) hp -= 3;
-        if(p.atk && bd < p.range + 70) boss.hp -= (1 + (level * 0.8));
+        if(bd < 110) hp -= isBlackAura ? 1 : 4;
+        if(p.atk && bd < p.range + 80) boss.hp -= (1.2 + (level * 1)) * p.dmgMult;
         if(boss.hp <= 0) advance();
     }
 
     lasers.forEach((ls, i) => {
-        ctx.beginPath(); ctx.strokeStyle = ls.c; ctx.lineWidth = ls.l/2;
+        ctx.beginPath(); ctx.strokeStyle = ls.c; ctx.lineWidth = ls.l;
         ctx.moveTo(ls.x, ls.y); ctx.lineTo(ls.tx, ls.ty); ctx.stroke();
-        ls.l--;
-        if(ls.l <= 0) lasers.splice(i, 1);
+        ls.l--; if(ls.l <= 0) lasers.splice(i, 1);
     });
 
-    drawEntity(p.x, p.y, p.s, p.c, 30);
-    if(p.atk) { ctx.beginPath(); ctx.strokeStyle = p.c; ctx.lineWidth = 7; ctx.arc(p.x, p.y, p.range, 0, Math.PI*2); ctx.stroke(); }
+    // Player Render
+    ctx.shadowBlur = 30; ctx.shadowColor = isBlackAura ? '#a020f0' : p.c;
+    ctx.strokeStyle = p.c; ctx.lineWidth = 4; ctx.strokeRect(p.x-p.s/2, p.y-p.s/2, p.s, p.s);
+    if(p.atk) { ctx.beginPath(); ctx.strokeStyle = p.c; ctx.arc(p.x, p.y, p.range, 0, Math.PI*2); ctx.stroke(); }
 
     document.getElementById('hp-fill').style.width = Math.max(0, (hp/maxHp)*100) + '%';
     document.getElementById('stamina-fill').style.width = (stamina/maxStamina)*100 + '%';
@@ -200,25 +218,28 @@ function loop() {
 
 function advance() {
     level++;
-    boss.active = false;
-    enemies = []; bullets = []; lasers = [];
+    boss.active = false; enemies = []; bullets = []; lasers = [];
     if(level > 3) return gameOver("VITÓRIA LENDÁRIA!");
     
-    killsLvl = 0;
-    maxHp += 100; hp = maxHp; stamina = maxStamina;
-    resetPlayerStatus();
+    if(level === 3) {
+        alert("VOCÊ PASSOU PRO NÍVEL FINAL! BUFF DE STATUS!");
+        maxHp += 200; maxStamina += 100;
+    } else {
+        maxHp += 100; maxStamina += 50;
+    }
     
+    hp = maxHp; stamina = maxStamina;
+    killsLvl = 0;
+    resetPlayerStatus();
     document.getElementById('lvl-tag').innerText = "FASE " + level + (level === 2 ? ": GUERREIRO" : ": LENDA");
     document.getElementById('score-val').innerText = "0 / 30";
-    setTimeout(spawn, 1000);
 }
 
 function gameOver(t) {
     active = false;
     document.getElementById('overlay').style.display = 'flex';
     document.getElementById('m-title').innerText = t;
-    document.getElementById('m-desc').innerText = t === "VITÓRIA LENDÁRIA!" ? "Você salvou o mundo Ninja-X!" : "Tente novamente para se tornar um mestre.";
-    document.getElementById('start-btn').innerText = "Voltar ao Início";
+    document.getElementById('start-btn').innerText = "Reiniciar";
 }
 </script>
 </body>
