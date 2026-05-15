@@ -21,7 +21,7 @@
         .btn { padding: 22px 90px; font-size: 24px; background: none; border: 2px solid #00aaff; color: #00aaff; cursor: pointer; transition: 0.3s; font-weight: 900; margin-top: 30px; border-radius: 4px; text-transform: uppercase; letter-spacing: 4px; }
         .btn:hover { background: #00aaff; color: #000; box-shadow: 0 0 50px #00aaff; transform: scale(1.05); }
         #msg-popup { position: absolute; top: 150px; color: #ffd700; font-size: 30px; font-weight: 900; text-shadow: 0 0 20px #ff0000; opacity: 0; transition: 0.5s; pointer-events: none; z-index: 100; text-align: center; }
-        #warning { color: #ff0044; font-weight: bold; position: absolute; bottom: 50px; opacity: 0; transition: 0.3s; z-index: 20; text-align: center; pointer-events: none;}
+        #warning { color: #ff0044; font-weight: 900; position: absolute; bottom: 80px; opacity: 0; transition: 0.2s; z-index: 20; text-shadow: 0 0 10px #000; }
     </style>
 </head>
 <body>
@@ -45,11 +45,11 @@
 </div>
 
 <div id="msg-popup">PARABÉNS! BUFF DE STATUS ATIVADO!<br><small style="font-size: 15px;">MAIOR ALCANCE, VIDA E VITALIDADE</small></div>
-<div id="warning">VITALIDADE ESGOTADA!</div>
+<div id="warning">EXAUSTO! AGUARDE REGENERAÇÃO</div>
 
 <div id="overlay">
     <h1 id="m-title">NINJA-X</h1>
-    <p id="m-desc" style="color: #00aaff; font-size: 18px; letter-spacing: 2px;">WASD: Move | Espaço: Ataque</p>
+    <p style="color: #00aaff; font-size: 18px; letter-spacing: 2px;">WASD: Move | Espaço: Ataque (Use com Sabedoria)</p>
     <button class="btn" id="start-btn" onclick="init()">Entrar na Arena</button>
 </div>
 
@@ -63,8 +63,8 @@ canvas.width = 1100; canvas.height = 650;
 let active = false, hp = 100, maxHp = 100, level = 1, killsLvl = 0;
 let stamina = 100, maxStamina = 100, canAtk = true;
 let blackAura = 0, isBlackAura = false;
-let p = { x: 550, y: 325, s: 30, c: '#00aaff', spd: 6, atk: false, range: 100, glow: false, dmgMult: 1 };
-let enemies = [], bullets = [], particles = [], lasers = [], keys = {}, lastKeys = {};
+let p = { x: 550, y: 325, s: 30, c: '#00aaff', spd: 6, atk: false, range: 100, dmgMult: 1 };
+let enemies = [], bullets = [], lasers = [], keys = {}, lastKeys = {};
 let boss = { x: 1300, y: 325, s: 150, hp: 0, max: 100, active: false, c: '#a020f0', lastAction: 0 };
 let spawnTimeout;
 
@@ -83,7 +83,7 @@ function init() {
 }
 
 function resetPlayerStatus() {
-    p.glow = false; p.c = '#00aaff'; p.s = 30; p.spd = 6 + (level * 1.2); 
+    p.c = '#00aaff'; p.s = 30; p.spd = 6 + (level * 1.2); 
     p.range = level === 3 ? 145 : 100; 
     p.dmgMult = 1; p.x = 550; p.y = 325;
 }
@@ -111,62 +111,56 @@ function loop() {
     p.x = Math.max(p.s/2, Math.min(canvas.width - p.s/2, p.x));
     p.y = Math.max(p.s/2, Math.min(canvas.height - p.s/2, p.y));
 
-    // LÓGICA DE REGENERAÇÃO
+    // LÓGICA DE VITALIDADE (REVISADA)
     if(isBlackAura) {
         blackAura -= 1.8;
-        if (stamina < maxStamina) stamina += 3.5; // Regen rápida, mas não infinita
+        if (stamina < maxStamina) stamina += 2.2; // Regen rápida, mas controlada
         document.getElementById('aura-fill').style.width = (blackAura / 600 * 100) + '%';
         if(blackAura <= 0) { 
-            isBlackAura = false; p.c = '#ffd700'; p.dmgMult = 1; 
-            p.range = 145;
+            isBlackAura = false; p.c = '#ffd700'; p.range = 145;
             document.getElementById('aura-card').style.display = 'none'; 
         }
     } else { 
-        if (stamina < maxStamina) stamina += 0.8; 
+        if (stamina < maxStamina) stamina += 0.5; // Regen base mais lenta para punir spam
     }
 
-    // BLOQUEIO DE ATAQUE POR STAMINA
-    if (stamina <= 0) { canAtk = false; document.getElementById('warning').style.opacity = 1; }
-    if (stamina >= 25) { canAtk = true; document.getElementById('warning').style.opacity = 0; }
+    // Gerenciamento de Exaustão
+    if (stamina <= 0) { canAtk = false; }
+    if (stamina >= 30) { canAtk = true; } // Só volta a atacar quando tiver 30% da barra
+    document.getElementById('warning').style.opacity = canAtk ? 0 : 1;
 
-    // GASTO DE STAMINA (Igual ao código original)
+    // Ataque com custo fixo de 25
     if(keys.Space && (isBlackAura || !lastKeys['Space']) && canAtk && !p.atk) {
         p.atk = true; 
-        stamina -= 22; // Custo de ataque normalizado
+        stamina -= 25; 
         lastKeys['Space'] = true;
         setTimeout(() => p.atk = false, 150);
     }
 
+    // Trigger de Boss e Nível
     if(killsLvl >= 30 && !boss.active) {
         boss.active = true; boss.hp = 350 * level; boss.max = boss.hp;
         boss.x = 1300; boss.y = 325;
         boss.c = level === 1 ? '#ff00ff' : (level === 2 ? '#00ff00' : '#ffffff');
-        p.glow = true; p.spd = 13; p.s = 60;
-        
+        p.spd = 13; p.s = 60;
         if(level === 3) {
             isBlackAura = true; blackAura = 600; p.c = '#000'; p.dmgMult = 4.5;
-            p.range = 240; 
-            hp = maxHp * 1.5; document.getElementById('aura-card').style.display = 'block';
-        } else { 
-            p.c = '#ffd700'; 
-            p.range = 210; 
-        }
+            p.range = 240; hp = maxHp * 1.5; document.getElementById('aura-card').style.display = 'block';
+        } else { p.c = '#ffd700'; p.range = 210; }
     }
 
     enemies.forEach((en, i) => {
         let dx = p.x - en.x, dy = p.y - en.y, d = Math.sqrt(dx*dx+dy*dy);
-        let moveX = (dx/d) * en.spd, moveY = (dy/d) * en.spd;
-        if(en.isSummoned) { moveX += en.offX; moveY += en.offY; }
-        en.x += moveX; en.y += moveY;
+        en.x += (dx/d) * en.spd; en.y += (dy/d) * en.spd;
 
         if(level >= 2 && d < 500 && Date.now() - en.lastShot > 1400) {
-            bullets.push({x: en.x, y: en.y, vx: (dx/d)*9, vy: (dy/d)*9, c: '#ff3300'});
+            bullets.push({x: en.x, y: en.y, vx: (dx/d)*9, vy: (dy/d)*9});
             en.lastShot = Date.now();
         }
         ctx.shadowBlur = 15; ctx.shadowColor = en.shield > 0 ? '#fff' : '#ff0000';
         ctx.strokeStyle = en.shield > 0 ? '#fff' : '#ff0000'; ctx.strokeRect(en.x-16, en.y-16, 32, 32);
 
-        if(d < 40 && !p.atk) hp -= isBlackAura ? 0.4 : 2;
+        if(d < 40 && !p.atk) hp -= isBlackAura ? 0.4 : 2.5;
         if(p.atk && d < p.range) {
             if(en.shield > 0) { en.shield = 0; p.atk = false; } 
             else { enemies.splice(i, 1); killsLvl++; }
@@ -185,19 +179,16 @@ function loop() {
         if (now - boss.lastAction > 1500) {
             lasers.push({x: boss.x, y: boss.y, tx: p.x, ty: p.y, l: 30, c: boss.c});
             if(level === 3) lasers.push({x: boss.x, y: boss.y, tx: p.x + 80, ty: p.y - 80, l: 30, c: boss.c});
-            if (level >= 2) {
-                for(let k=0; k<5; k++) enemies.push({x: boss.x, y: boss.y, s: 32, spd: 5, shield: 0, lastShot: now, isSummoned: true, offX: Math.random()*6-3, offY: Math.random()*6-3});
-            }
             boss.lastAction = now;
         }
-        if(bd < 110) hp -= isBlackAura ? 1 : 4.5;
+        if(bd < 110) hp -= isBlackAura ? 1 : 5;
         if(p.atk && bd < p.range + 80) boss.hp -= (1.4 + (level * 1.1)) * p.dmgMult;
         if(boss.hp <= 0) advance();
     }
 
     bullets.forEach((b, i) => {
-        b.x += b.vx; b.y += b.vy; ctx.fillStyle = b.c; ctx.fillRect(b.x-7, b.y-7, 14, 14);
-        if(Math.sqrt((p.x-b.x)**2 + (p.y-b.y)**2) < 30) { hp -= isBlackAura ? 5 : 15; bullets.splice(i, 1); }
+        b.x += b.vx; b.y += b.vy; ctx.fillStyle = '#ff3300'; ctx.fillRect(b.x-7, b.y-7, 14, 14);
+        if(Math.sqrt((p.x-b.x)**2 + (p.y-b.y)**2) < 30) { hp -= isBlackAura ? 5 : 18; bullets.splice(i, 1); }
     });
 
     lasers.forEach((ls, i) => { ctx.beginPath(); ctx.strokeStyle = ls.c; ctx.lineWidth = ls.l; ctx.moveTo(ls.x, ls.y); ctx.lineTo(ls.tx, ls.ty); ctx.stroke(); ls.l--; if(ls.l <= 0) lasers.splice(i, 1); });
@@ -207,9 +198,7 @@ function loop() {
     ctx.strokeRect(p.x-p.s/2, p.y-p.s/2, p.s, p.s);
 
     if(p.atk) {
-        ctx.beginPath(); ctx.strokeStyle = p.c; 
-        ctx.lineWidth = isBlackAura ? 12 : 6;
-        ctx.shadowBlur = isBlackAura ? 40 : 20;
+        ctx.beginPath(); ctx.strokeStyle = p.c; ctx.lineWidth = isBlackAura ? 12 : 6;
         ctx.arc(p.x, p.y, p.range, 0, Math.PI*2); ctx.stroke(); 
         ctx.beginPath(); ctx.globalAlpha = 0.2; ctx.fillStyle = p.c;
         ctx.arc(p.x, p.y, p.range, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha = 1.0;
