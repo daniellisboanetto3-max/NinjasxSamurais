@@ -12,7 +12,7 @@
         .bar-container { width: 100%; height: 12px; background: #111; border: 1px solid #333; border-radius: 6px; overflow: hidden; margin-bottom: 8px; }
         #hp-fill { width: 100%; height: 100%; background: linear-gradient(90deg, #ff0044, #ff8800); box-shadow: 0 0 15px #ff0044; transition: 0.2s; }
         #stamina-fill { width: 100%; height: 100%; background: linear-gradient(90deg, #00ff88, #00aaff); box-shadow: 0 0 10px #00ff88; }
-        #aura-card { display: none; margin-top: 5px; border-left-color: #a020f0; }
+        #aura-card { display: none; margin-top: 5px; border-left: 5px solid #a020f0; padding-left: 5px; }
         #aura-fill { width: 100%; height: 100%; background: linear-gradient(90deg, #5500ff, #000); box-shadow: 0 0 15px #a020f0; }
         #lvl-tag { color: #00aaff; font-size: 14px; font-weight: 900; letter-spacing: 2px; margin-bottom: 10px; }
         #score-val { color: #fff; font-size: 32px; font-weight: 900; text-shadow: 0 0 10px #ffd700; }
@@ -20,6 +20,7 @@
         h1 { font-size: 100px; margin: 0; color: #fff; text-shadow: 0 0 20px #00aaff, 0 0 60px #00aaff; letter-spacing: 10px; }
         .btn { padding: 22px 90px; font-size: 24px; background: none; border: 2px solid #00aaff; color: #00aaff; cursor: pointer; transition: 0.3s; font-weight: 900; margin-top: 30px; border-radius: 4px; text-transform: uppercase; letter-spacing: 4px; }
         .btn:hover { background: #00aaff; color: #000; box-shadow: 0 0 50px #00aaff; transform: scale(1.05); }
+        #msg-popup { position: absolute; top: 150px; color: #ffd700; font-size: 30px; font-weight: 900; text-shadow: 0 0 20px #ff0000; opacity: 0; transition: 1s; pointer-events: none; z-index: 100; }
         #warning { color: #ff0044; font-weight: bold; position: absolute; bottom: 50px; opacity: 0; transition: 0.3s; z-index: 20; text-align: center;}
     </style>
 </head>
@@ -43,6 +44,8 @@
     </div>
 </div>
 
+<div id="msg-popup">NÍVEL FINAL: BUFF DE STATUS!</div>
+
 <div id="overlay">
     <h1 id="m-title">NINJA-X</h1>
     <p id="m-desc" style="color: #00aaff; font-size: 18px; letter-spacing: 2px;">WASD: Move | Espaço: Ataca</p>
@@ -63,11 +66,14 @@ let blackAura = 0, isBlackAura = false;
 let p = { x: 550, y: 325, s: 30, c: '#00aaff', spd: 6, atk: false, range: 90, glow: false, dmgMult: 1 };
 let enemies = [], bullets = [], particles = [], lasers = [], keys = {}, lastKeys = {};
 let boss = { x: 1300, y: 325, s: 150, hp: 0, max: 100, active: false, c: '#a020f0', lastAction: 0 };
+let spawnTimeout;
 
 window.onkeydown = e => keys[e.code] = true;
 window.onkeyup = e => { keys[e.code] = false; delete lastKeys[e.code]; };
 
 function init() {
+    cancelAnimationFrame(loop);
+    clearTimeout(spawnTimeout);
     document.getElementById('overlay').style.display = 'none';
     active = true; level = 1; maxHp = 100; hp = 100; killsLvl = 0; stamina = 100; maxStamina = 100;
     enemies = []; bullets = []; lasers = []; boss.active = false; isBlackAura = false;
@@ -83,21 +89,22 @@ function resetPlayerStatus() {
 }
 
 function spawn() {
-    if(!active || boss.active) return;
-    let side = Math.random() > 0.5;
-    enemies.push({ 
-        x: side ? -70 : canvas.width + 70, 
-        y: Math.random() * canvas.height, 
-        s: 32, spd: 2.2 + (level * 1.3), shield: level === 3 ? 1 : 0, lastShot: Date.now()
-    });
-    setTimeout(spawn, Math.max(150, 900 - (level * 200)));
+    if(!active) return;
+    if(!boss.active) {
+        let side = Math.random() > 0.5;
+        enemies.push({ 
+            x: side ? -70 : canvas.width + 70, 
+            y: Math.random() * canvas.height, 
+            s: 32, spd: 2.2 + (level * 1.3), shield: level === 3 ? 1 : 0, lastShot: Date.now()
+        });
+    }
+    spawnTimeout = setTimeout(spawn, Math.max(150, 900 - (level * 200)));
 }
 
 function loop() {
     if(!active) return;
     ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Movimentação
     let mx = 0, my = 0;
     if(keys.ArrowUp || keys.KeyW) my = -1; if(keys.ArrowDown || keys.KeyS) my = 1;
     if(keys.ArrowLeft || keys.KeyA) mx = -1; if(keys.ArrowRight || keys.KeyD) mx = 1;
@@ -105,52 +112,34 @@ function loop() {
     p.x = Math.max(p.s/2, Math.min(canvas.width - p.s/2, p.x));
     p.y = Math.max(p.s/2, Math.min(canvas.height - p.s/2, p.y));
 
-    // Lógica de Aura Negra
     if(isBlackAura) {
-        blackAura -= 1.4; // Dura aprox 7 seg a 60fps
-        stamina = maxStamina;
+        blackAura -= 1.6; stamina = maxStamina;
         document.getElementById('aura-fill').style.width = (blackAura / 600 * 100) + '%';
-        if(blackAura <= 0) {
-            isBlackAura = false;
-            p.c = '#ffd700'; p.dmgMult = 1;
-            document.getElementById('aura-card').style.display = 'none';
-        }
-    } else {
-        if (stamina < maxStamina) stamina += 0.7; 
-    }
+        if(blackAura <= 0) { isBlackAura = false; p.c = '#ffd700'; p.dmgMult = 1; document.getElementById('aura-card').style.display = 'none'; }
+    } else { if (stamina < maxStamina) stamina += 0.7; }
 
     if (stamina <= 0) { canAtk = false; document.getElementById('warning').style.opacity = 1; }
     if (stamina >= 25) { canAtk = true; document.getElementById('warning').style.opacity = 0; }
 
-    // Ataque
-    let canSpam = isBlackAura;
-    if(keys.Space && (canSpam || !lastKeys['Space']) && canAtk && !p.atk) {
+    if(keys.Space && (isBlackAura || !lastKeys['Space']) && canAtk && !p.atk) {
         p.atk = true; if(!isBlackAura) stamina -= 22; lastKeys['Space'] = true;
         setTimeout(() => p.atk = false, 120);
     }
 
-    // Glow Up Trigger
     if(killsLvl >= 30 && !boss.active) {
         boss.active = true; boss.hp = 300 * level; boss.max = boss.hp;
         boss.x = 1300; boss.y = 325;
         boss.c = level === 1 ? '#ff00ff' : (level === 2 ? '#00ff00' : '#ffffff');
-        
         p.glow = true; p.spd = 13; p.range = 210; p.s = 60;
         if(level === 3) {
-            isBlackAura = true; blackAura = 600; p.c = '#000'; p.dmgMult = 3;
-            hp = maxHp * 1.5; // Vida reforçada temporária
-            document.getElementById('aura-card').style.display = 'block';
-        } else {
-            p.c = '#ffd700';
-        }
+            isBlackAura = true; blackAura = 600; p.c = '#000'; p.dmgMult = 3.5;
+            hp = maxHp * 1.5; document.getElementById('aura-card').style.display = 'block';
+        } else { p.c = '#ffd700'; }
     }
 
-    // IA Inimigos
     enemies.forEach((en, i) => {
         let dx = p.x - en.x, dy = p.y - en.y, d = Math.sqrt(dx*dx+dy*dy);
-        // IA de cerco para invocados
-        let moveX = (dx/d) * en.spd;
-        let moveY = (dy/d) * en.spd;
+        let moveX = (dx/d) * en.spd, moveY = (dy/d) * en.spd;
         if(en.isSummoned) { moveX += en.offX; moveY += en.offY; }
         en.x += moveX; en.y += moveY;
 
@@ -169,18 +158,16 @@ function loop() {
         }
     });
 
-    // Bullets & Lasers
     bullets.forEach((b, i) => {
-        b.x += b.vx; b.y += b.vy;
-        ctx.fillStyle = b.c; ctx.fillRect(b.x-7, b.y-7, 14, 14);
+        b.x += b.vx; b.y += b.vy; ctx.fillStyle = b.c; ctx.fillRect(b.x-7, b.y-7, 14, 14);
         if(Math.sqrt((p.x-b.x)**2 + (p.y-b.y)**2) < 30) { hp -= isBlackAura ? 5 : 15; bullets.splice(i, 1); }
     });
 
     if(boss.active) {
         let bdx = p.x - boss.x, bdy = p.y - boss.y, bd = Math.sqrt(bdx*bdx+bdy*bdy);
         boss.x += (bdx/bd) * (4 + level); boss.y += (bdy/bd) * (4 + level);
-        ctx.shadowBlur = 50; ctx.shadowColor = boss.c;
-        ctx.strokeStyle = boss.c; ctx.lineWidth = 5; ctx.strokeRect(boss.x-75, boss.y-75, 150, 150);
+        ctx.shadowBlur = 50; ctx.shadowColor = boss.c; ctx.strokeStyle = boss.c; ctx.lineWidth = 5;
+        ctx.strokeRect(boss.x-75, boss.y-75, 150, 150);
         ctx.fillStyle = boss.c; ctx.fillRect(boss.x-75, boss.y-115, (boss.hp/boss.max)*150, 15);
 
         let now = Date.now();
@@ -188,26 +175,20 @@ function loop() {
             lasers.push({x: boss.x, y: boss.y, tx: p.x, ty: p.y, l: 30, c: boss.c});
             if(level === 3) lasers.push({x: boss.x, y: boss.y, tx: p.x + 100, ty: p.y - 100, l: 30, c: boss.c});
             if (level >= 2) {
-                for(let k=0; k<3+level; k++) {
-                    enemies.push({x: boss.x, y: boss.y, s: 32, spd: 5, shield: 0, lastShot: now, isSummoned: true, offX: Math.random()*4-2, offY: Math.random()*4-2});
+                for(let k=0; k<4+level; k++) {
+                    enemies.push({x: boss.x, y: boss.y, s: 32, spd: 5, shield: 0, lastShot: now, isSummoned: true, offX: Math.random()*5-2.5, offY: Math.random()*5-2.5});
                 }
             }
             boss.lastAction = now;
         }
-        if(bd < 110) hp -= isBlackAura ? 1 : 4;
-        if(p.atk && bd < p.range + 80) boss.hp -= (1.2 + (level * 1)) * p.dmgMult;
+        if(bd < 110) hp -= isBlackAura ? 1 : 4.5;
+        if(p.atk && bd < p.range + 80) boss.hp -= (1.3 + (level * 1)) * p.dmgMult;
         if(boss.hp <= 0) advance();
     }
 
-    lasers.forEach((ls, i) => {
-        ctx.beginPath(); ctx.strokeStyle = ls.c; ctx.lineWidth = ls.l;
-        ctx.moveTo(ls.x, ls.y); ctx.lineTo(ls.tx, ls.ty); ctx.stroke();
-        ls.l--; if(ls.l <= 0) lasers.splice(i, 1);
-    });
+    lasers.forEach((ls, i) => { ctx.beginPath(); ctx.strokeStyle = ls.c; ctx.lineWidth = ls.l; ctx.moveTo(ls.x, ls.y); ctx.lineTo(ls.tx, ls.ty); ctx.stroke(); ls.l--; if(ls.l <= 0) lasers.splice(i, 1); });
 
-    // Player Render
-    ctx.shadowBlur = 30; ctx.shadowColor = isBlackAura ? '#a020f0' : p.c;
-    ctx.strokeStyle = p.c; ctx.lineWidth = 4; ctx.strokeRect(p.x-p.s/2, p.y-p.s/2, p.s, p.s);
+    ctx.shadowBlur = 30; ctx.shadowColor = isBlackAura ? '#a020f0' : p.c; ctx.strokeStyle = p.c; ctx.lineWidth = 4; ctx.strokeRect(p.x-p.s/2, p.y-p.s/2, p.s, p.s);
     if(p.atk) { ctx.beginPath(); ctx.strokeStyle = p.c; ctx.arc(p.x, p.y, p.range, 0, Math.PI*2); ctx.stroke(); }
 
     document.getElementById('hp-fill').style.width = Math.max(0, (hp/maxHp)*100) + '%';
@@ -222,21 +203,19 @@ function advance() {
     if(level > 3) return gameOver("VITÓRIA LENDÁRIA!");
     
     if(level === 3) {
-        alert("VOCÊ PASSOU PRO NÍVEL FINAL! BUFF DE STATUS!");
+        let popup = document.getElementById('msg-popup');
+        popup.style.opacity = 1;
+        setTimeout(() => popup.style.opacity = 0, 3000);
         maxHp += 200; maxStamina += 100;
-    } else {
-        maxHp += 100; maxStamina += 50;
-    }
+    } else { maxHp += 100; maxStamina += 50; }
     
-    hp = maxHp; stamina = maxStamina;
-    killsLvl = 0;
-    resetPlayerStatus();
+    hp = maxHp; stamina = maxStamina; killsLvl = 0; resetPlayerStatus();
     document.getElementById('lvl-tag').innerText = "FASE " + level + (level === 2 ? ": GUERREIRO" : ": LENDA");
     document.getElementById('score-val').innerText = "0 / 30";
 }
 
 function gameOver(t) {
-    active = false;
+    active = false; clearTimeout(spawnTimeout);
     document.getElementById('overlay').style.display = 'flex';
     document.getElementById('m-title').innerText = t;
     document.getElementById('start-btn').innerText = "Reiniciar";
