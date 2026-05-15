@@ -21,6 +21,7 @@
         .btn { padding: 22px 90px; font-size: 24px; background: none; border: 2px solid #00aaff; color: #00aaff; cursor: pointer; transition: 0.3s; font-weight: 900; margin-top: 30px; border-radius: 4px; text-transform: uppercase; letter-spacing: 4px; }
         .btn:hover { background: #00aaff; color: #000; box-shadow: 0 0 50px #00aaff; transform: scale(1.05); }
         #msg-popup { position: absolute; top: 150px; color: #ffd700; font-size: 30px; font-weight: 900; text-shadow: 0 0 20px #ff0000; opacity: 0; transition: 0.5s; pointer-events: none; z-index: 100; text-align: center; }
+        #warning { color: #ff0044; font-weight: bold; position: absolute; bottom: 50px; opacity: 0; transition: 0.3s; z-index: 20; text-align: center; pointer-events: none;}
     </style>
 </head>
 <body>
@@ -44,6 +45,7 @@
 </div>
 
 <div id="msg-popup">PARABÉNS! BUFF DE STATUS ATIVADO!<br><small style="font-size: 15px;">MAIOR ALCANCE, VIDA E VITALIDADE</small></div>
+<div id="warning">VITALIDADE ESGOTADA!</div>
 
 <div id="overlay">
     <h1 id="m-title">NINJA-X</h1>
@@ -109,10 +111,10 @@ function loop() {
     p.x = Math.max(p.s/2, Math.min(canvas.width - p.s/2, p.x));
     p.y = Math.max(p.s/2, Math.min(canvas.height - p.s/2, p.y));
 
-    // LÓGICA DE STAMINA (Regen Ultra Rápida na Aura Negra)
+    // LÓGICA DE REGENERAÇÃO
     if(isBlackAura) {
         blackAura -= 1.8;
-        if (stamina < maxStamina) stamina += 4.5; // Regeneração Berserker (5x mais rápida)
+        if (stamina < maxStamina) stamina += 3.5; // Regen rápida, mas não infinita
         document.getElementById('aura-fill').style.width = (blackAura / 600 * 100) + '%';
         if(blackAura <= 0) { 
             isBlackAura = false; p.c = '#ffd700'; p.dmgMult = 1; 
@@ -123,11 +125,15 @@ function loop() {
         if (stamina < maxStamina) stamina += 0.8; 
     }
 
-    if (stamina < 25 && !isBlackAura) canAtk = false;
-    if (stamina >= 25) canAtk = true;
+    // BLOQUEIO DE ATAQUE POR STAMINA
+    if (stamina <= 0) { canAtk = false; document.getElementById('warning').style.opacity = 1; }
+    if (stamina >= 25) { canAtk = true; document.getElementById('warning').style.opacity = 0; }
 
+    // GASTO DE STAMINA (Igual ao código original)
     if(keys.Space && (isBlackAura || !lastKeys['Space']) && canAtk && !p.atk) {
-        p.atk = true; stamina -= 22; lastKeys['Space'] = true;
+        p.atk = true; 
+        stamina -= 22; // Custo de ataque normalizado
+        lastKeys['Space'] = true;
         setTimeout(() => p.atk = false, 150);
     }
 
